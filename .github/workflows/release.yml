@@ -26,8 +26,13 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/check_version.py --tag "$RELEASE_TAG"
-          if [[ "$(git cat-file -t "refs/tags/$RELEASE_TAG")" != "tag" ]]; then
+          REMOTE_TAG_OBJECT="$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')"
+          if [[ -z "$REMOTE_TAG_OBJECT" || "$(git cat-file -t "$REMOTE_TAG_OBJECT")" != "tag" ]]; then
             echo "Release tags must be annotated Git tags: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse "$REMOTE_TAG_OBJECT^{commit}")" != "$GITHUB_SHA" ]]; then
+            echo "Release tag does not point to the triggering commit: $RELEASE_TAG" >&2
             exit 1
           fi
           VERSION_WITHOUT_BUILD="${RELEASE_TAG%%+*}"
