@@ -69,7 +69,13 @@ jobs:
           python -m pip install frappe-bench
           corepack enable
       - name: Initialize clean Frappe v16 Bench
-        run: bench init --frappe-branch version-16 --python python frappe-bench
+        run: >-
+          bench init
+          --frappe-branch version-16
+          --python "$(which python)"
+          --skip-assets
+          --skip-redis-config-generation
+          frappe-bench
       - name: Configure services and create test site
         working-directory: frappe-bench
         run: |
@@ -81,7 +87,7 @@ jobs:
       - name: Install app from clean checkout
         working-directory: frappe-bench
         run: |
-          bench get-app "$GITHUB_WORKSPACE/frappe-split-view"
+          bench get-app --skip-assets "$GITHUB_WORKSPACE/frappe-split-view"
           bench --site ci.test install-app frappe_split_view
       - name: Build app assets
         working-directory: frappe-bench
