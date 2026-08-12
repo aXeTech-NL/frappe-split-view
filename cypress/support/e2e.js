@@ -1,6 +1,7 @@
 Cypress.Commands.add(
   "login",
-  (email = "Administrator", password = Cypress.env("adminPassword")) => {
+  (email = "Administrator", password) => {
+    password = password || Cypress.env("adminPassword") || Cypress.config("adminPassword") || "admin";
     return cy.request({
       url: "/api/method/login",
       method: "POST",
