@@ -20,10 +20,12 @@ export function hardNavigateToForm(
 export function isDeskNavigation(anchor, locationObject = window.location) {
   if (!anchor?.href) return false;
   const rawHref = anchor.getAttribute?.("href") || "";
-  if (!rawHref || rawHref === "#" || rawHref.startsWith("javascript:")) return false;
+  if (!rawHref || rawHref === "#") return false;
   const target = new URL(anchor.href, locationObject.href);
   const current = new URL(locationObject.href);
+  if (!['http:', 'https:'].includes(target.protocol)) return false;
   return (
+    target.protocol === current.protocol &&
     target.origin === locationObject.origin &&
     target.pathname.startsWith("/desk/") &&
     (target.pathname !== current.pathname || target.search !== current.search)

@@ -64,9 +64,11 @@ jobs:
       - name: Install Bench and browser prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --yes mariadb-client libmariadb-dev chromium
+          sudo apt-get install --yes mariadb-client libmariadb-dev
           python -m pip install --upgrade pip frappe-bench
           corepack enable
+      - uses: browser-actions/setup-chrome@latest
+        id: setup-chrome
       - name: Initialize pinned Frappe v16 Bench
         run: >-
           bench init --frappe-branch v16.31.0 --python "$(which python)"
@@ -105,7 +107,7 @@ jobs:
             sleep 2
           done
           if [ "$ready" -ne 1 ]; then echo "Frappe web server did not become ready"; cat /tmp/frappe-bench.log; exit 1; fi
-          bench --site ci.test run-ui-tests frappe_split_view --headless --browser "$(command -v chromium)" \
+          bench --site ci.test run-ui-tests frappe_split_view --headless --browser "${{ steps.setup-chrome.outputs.chrome-path }}" \
             --spec frappe_split_view/public/js/ui_test_split_view.js
       - name: Upload browser diagnostics on failure
         if: failure()
@@ -151,9 +153,11 @@ jobs:
       - name: Install prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install --yes mariadb-client libmariadb-dev chromium
+          sudo apt-get install --yes mariadb-client libmariadb-dev
           python -m pip install --upgrade pip frappe-bench
           corepack enable
+      - uses: browser-actions/setup-chrome@latest
+        id: setup-chrome
       - name: Initialize pinned Frappe and ERPNext v16
         run: >-
           bench init --frappe-branch v16.31.0 --python "$(which python)"
@@ -190,7 +194,7 @@ jobs:
             sleep 2
           done
           if [ "$ready" -ne 1 ]; then echo "ERPNext web server did not become ready"; cat /tmp/erpnext-bench.log; exit 1; fi
-          bench --site erpnext.test run-ui-tests frappe_split_view --headless --browser "$(command -v chromium)" \
+          bench --site erpnext.test run-ui-tests frappe_split_view --headless --browser "${{ steps.setup-chrome.outputs.chrome-path }}" \
             --spec frappe_split_view/public/js/ui_test_split_view_project.js
       - name: Upload ERPNext browser diagnostics on failure
         if: failure()

@@ -9,6 +9,11 @@ def setup_erpnext_project_poc() -> str:
     if "erpnext" not in frappe.get_installed_apps():
         frappe.throw("ERPNext must be installed before creating the Project POC fixture")
 
+    # Company creates a Goods In Transit warehouse and expects this ERPNext
+    # setup-wizard fixture to exist.
+    if not frappe.db.exists("Warehouse Type", "Transit"):
+        frappe.get_doc({"doctype": "Warehouse Type", "name": "Transit"}).insert(ignore_permissions=True)
+
     company_name = "Frappe Split View POC Company"
     if not frappe.db.exists("Company", company_name):
         frappe.get_doc(
