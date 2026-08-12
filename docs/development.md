@@ -2,59 +2,62 @@
 
 ## Prerequisites
 
-The current Frappe v16 line uses Python 3.14, Node 24, and MariaDB 11.8 in CI. Install those versions,
-Redis, Bench, and other platform prerequisites described by Frappe. Use a disposable development site;
-this project is experimental.
+CI pins Frappe `v16.31.0` with Python 3.14, Node 24, MariaDB 11.8, Redis, Chrome/Chromium,
+and Bench. Use a disposable site: the POC intentionally exercises private Desk APIs.
 
 ## Bench setup
 
 ```bash
-bench init --frappe-branch version-16 frappe-bench
+bench init --frappe-branch v16.31.0 frappe-bench
 cd frappe-bench
-bench new-site split-view.test
+bench new-site split-view.test --admin-password admin
 bench get-app /path/to/frappe-split-view
 bench --site split-view.test install-app frappe_split_view
 bench build --app frappe_split_view
 bench --site split-view.test run-tests --app frappe_split_view
 ```
 
-For repository CI parity, begin from a clean environment. The bootstrap contains no feature assets,
-so `bench build` validates app/build integration rather than Split View behavior.
+Frappe discovers `public/**/*.bundle.js` and `public/**/*.bundle.scss`; this app has no npm dependency
+or package.json. Hooks use logical `frappe_split_view.bundle.js` and `.css` names.
 
-## Dependency-free checks
-
-Outside Bench, Python 3.11+ can parse/run these repository checks even though package installation
-requires Python 3.14:
+## Repository checks
 
 ```bash
 python scripts/check_version.py
-python scripts/check_version.py --tag v0.1.0
 python -m unittest discover -s tests -v
+node --test tests/js/*.test.mjs
 python -m compileall -q frappe_split_view scripts tests
 git diff --check
-```
-
-Install pre-commit and run:
-
-```bash
 pre-commit run --all-files
+python -m build --sdist
 ```
 
-## Runtime validation still required
+## Targeted browser tests
 
-A local environment without Frappe cannot validate app discovery, site installation, hooks, asset
-builds, permissions, migrations, tests, upgrades, or uninstall. It also cannot establish that Form
-embedding works. Before a compatibility or release claim, run clean Bench CI and perform the
-Milestone-1 browser POC described in [architecture.md](architecture.md).
-
-When uninstall testing becomes applicable, verify standard business documents are untouched:
+Complete the site wizard and run Bench/Cypress with the site available:
 
 ```bash
-bench --site split-view.test uninstall-app frappe_split_view
+bench --site split-view.test execute frappe.utils.install.complete_setup_wizard
+bench serve --port 8000
+bench --site split-view.test run-ui-tests frappe_split_view \
+  --headless --browser "$(command -v google-chrome || command -v chromium)" \
+  --spec frappe_split_view/public/js/ui_test_split_view.js
 ```
 
-## Style and commits
+For the required ERPNext CI environment install `v16.32.0`, ensure setup creates a Company, and run
+`ui_test_split_view_project.js`. ERPNext remains an integration dependency only.
 
-Python uses Ruff with a 110-character line length. YAML/TOML and whitespace checks run through
-pre-commit. No JavaScript toolchain is configured until concrete feature code exists. Use Conventional
-Commits, keep changes focused, and update `CHANGELOG.md` for user-visible behavior.
+## Browser assertions
+
+The ToDo smoke asserts selector registration, stable pane attributes, a real
+`frappe.ui.form.Form`, same object identity across records, active List container/cache ownership,
+explicit save persistence through REST, dirty switch/close blocking, page hide/show `cur_frm`, and
+hard full-page boundary. It does not mock Form as runtime proof.
+
+## Manual work still required
+
+PR #6 passed the required pinned GitHub CI jobs. Beyond the automated alpha gate, inspect
+repeated-switch memory/listeners and test links, toolbar actions, custom scripts, permissions/errors,
+grids, dialogs, keyboard/focus, RTL, narrow view, cache-busted build, migrate/upgrade/uninstall, and
+ERPNext Project at the recorded refs.
+Complete browser Back/Forward/refresh parity is explicitly not an alpha gate or claim.

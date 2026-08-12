@@ -11,46 +11,46 @@ permissions:
 
 jobs:
   static:
-    name: Static and version checks
+    name: Static, version, and pure JS checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
       - name: Validate metadata version
         run: python scripts/check_version.py
       - name: Compile Python sources
         run: python -m compileall -q frappe_split_view scripts tests
-      - name: Run dependency-free tests
+      - name: Run dependency-free Python tests
         run: python -m unittest discover -s tests -v
+      - name: Run dependency-free JavaScript tests
+        run: node --test tests/js/*.test.mjs
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
 
   bench:
-    name: Clean Frappe v16 Bench
+    name: Clean Frappe v16 Bench and ToDo browser POC
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     services:
       mariadb:
         image: mariadb:11.8
         env:
           MARIADB_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
+        ports: ["3306:3306"]
         options: >-
           --health-cmd="mariadb-admin ping -h 127.0.0.1 -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=12
+          --health-interval=10s --health-timeout=5s --health-retries=12
       redis-cache:
         image: redis:7-alpine
-        ports:
-          - 13000:6379
+        ports: ["13000:6379"]
       redis-queue:
         image: redis:7-alpine
-        ports:
-          - 11000:6379
+        ports: ["11000:6379"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,37 +61,151 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Install Bench prerequisites
+      - name: Install Bench and browser prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install --yes mariadb-client libmariadb-dev
-          python -m pip install --upgrade pip
-          python -m pip install frappe-bench
+          python -m pip install --upgrade pip 'frappe-bench==5.31.0'
           corepack enable
-      - name: Initialize clean Frappe v16 Bench
+      - uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd
+        id: setup-chrome
+      - name: Initialize pinned Frappe v16 Bench
         run: >-
-          bench init
-          --frappe-branch version-16
-          --python "$(which python)"
-          --skip-assets
-          --skip-redis-config-generation
-          frappe-bench
-      - name: Configure services and create test site
+          bench init --frappe-branch v16.31.0 --python "$(which python)"
+          --skip-assets --skip-redis-config-generation frappe-bench
+      - name: Configure services and create site
         working-directory: frappe-bench
         run: |
           bench set-config -g db_host 127.0.0.1
           bench set-config -g redis_cache redis://127.0.0.1:13000
           bench set-config -g redis_queue redis://127.0.0.1:11000
+          bench set-config -g admin_password admin
           bench new-site ci.test --db-root-password root --admin-password admin --no-mariadb-socket
           bench --site ci.test set-config allow_tests true
-      - name: Install app from clean checkout
+      - name: Install, build, migrate, and test app
         working-directory: frappe-bench
         run: |
+          test "$(git -C apps/frappe rev-parse HEAD)" = "6a329d068416768ec47ccd3326b9cc95a8d7bf99"
           bench get-app --skip-assets "$GITHUB_WORKSPACE/frappe-split-view"
           bench --site ci.test install-app frappe_split_view
-      - name: Build app assets
+          CI=Yes bench build --force
+          bench --site ci.test migrate
+          bench --site ci.test run-tests --app frappe_split_view
+          test -n "$(find sites/assets/frappe_split_view/dist -type f -name 'frappe_split_view.bundle.*.js' -print -quit)"
+          grep -q 'frappe_split_view.bundle.js' sites/assets/assets.json
+      - name: Complete site and run targeted ToDo browser POC
         working-directory: frappe-bench
-        run: bench build --app frappe_split_view
-      - name: Run app tests
+        env:
+          NO_PROXY: ci.test,127.0.0.1,localhost
+        run: |
+          echo "127.0.0.1 ci.test" | sudo tee -a /etc/hosts
+          bench --site ci.test execute frappe.utils.install.complete_setup_wizard
+          bench --site ci.test execute frappe.tests.ui_test_helpers.create_test_user
+          bench serve --port 8000 > /tmp/frappe-bench.log 2>&1 &
+          ready=0
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://ci.test:8000/api/method/ping; then ready=1; break; fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then echo "Frappe web server did not become ready"; cat /tmp/frappe-bench.log; exit 1; fi
+          bench --site ci.test run-ui-tests frappe_split_view --headless --browser "${{ steps.setup-chrome.outputs.chrome-path }}" \
+            --spec frappe_split_view/public/js/ui_test_split_view.js
+      - name: Upload browser diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frappe-todo-browser-diagnostics
+          path: |
+            /tmp/frappe-bench.log
+            frappe-bench/logs
+            frappe-bench/cypressVideos
+            frappe-bench/apps/frappe_split_view/cypress/screenshots
+            frappe-bench/apps/frappe_split_view/cypress/videos
+
+  erpnext-integration:
+    name: ERPNext v16 Project browser POC
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -proot"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+      redis-cache:
+        image: redis:7-alpine
+        ports: ["13000:6379"]
+      redis-queue:
+        image: redis:7-alpine
+        ports: ["11000:6379"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: frappe-split-view
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes mariadb-client libmariadb-dev
+          python -m pip install --upgrade pip 'frappe-bench==5.31.0'
+          corepack enable
+      - uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd
+        id: setup-chrome
+      - name: Initialize pinned Frappe and ERPNext v16
+        run: >-
+          bench init --frappe-branch v16.31.0 --python "$(which python)"
+          --skip-assets --skip-redis-config-generation frappe-bench
+      - name: Configure site and install apps
         working-directory: frappe-bench
-        run: bench --site ci.test run-tests --app frappe_split_view
+        run: |
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g redis_cache redis://127.0.0.1:13000
+          bench set-config -g redis_queue redis://127.0.0.1:11000
+          bench set-config -g admin_password admin
+          bench new-site erpnext.test --db-root-password root --admin-password admin --no-mariadb-socket
+          bench --site erpnext.test set-config allow_tests true
+          test "$(git -C apps/frappe rev-parse HEAD)" = "6a329d068416768ec47ccd3326b9cc95a8d7bf99"
+          bench get-app --branch v16.32.0 --skip-assets erpnext https://github.com/frappe/erpnext
+          test "$(git -C apps/erpnext rev-parse HEAD)" = "81a6f97566b83609c3917404a560b673050e907d"
+          bench get-app --skip-assets "$GITHUB_WORKSPACE/frappe-split-view"
+          bench --site erpnext.test install-app erpnext
+          bench --site erpnext.test install-app frappe_split_view
+          CI=Yes bench build --force
+          bench --site erpnext.test migrate
+          bench --site erpnext.test execute frappe_split_view.tests.ui_test_helpers.setup_erpnext_project_poc
+          test -n "$(find sites/assets/frappe_split_view/dist -type f -name 'frappe_split_view.bundle.*.js' -print -quit)"
+          grep -q 'frappe_split_view.bundle.js' sites/assets/assets.json
+      - name: Run targeted Project browser POC
+        working-directory: frappe-bench
+        env:
+          NO_PROXY: erpnext.test,127.0.0.1,localhost
+        run: |
+          echo "127.0.0.1 erpnext.test" | sudo tee -a /etc/hosts
+          bench serve --port 8000 > /tmp/erpnext-bench.log 2>&1 &
+          ready=0
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://erpnext.test:8000/api/method/ping; then ready=1; break; fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then echo "ERPNext web server did not become ready"; cat /tmp/erpnext-bench.log; exit 1; fi
+          bench --site erpnext.test run-ui-tests frappe_split_view --headless --browser "${{ steps.setup-chrome.outputs.chrome-path }}" \
+            --spec frappe_split_view/public/js/ui_test_split_view_project.js
+      - name: Upload ERPNext browser diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: erpnext-project-browser-diagnostics
+          path: |
+            /tmp/erpnext-bench.log
+            frappe-bench/logs
+            frappe-bench/cypressVideos
+            frappe-bench/apps/frappe_split_view/cypress/screenshots
+            frappe-bench/apps/frappe_split_view/cypress/videos

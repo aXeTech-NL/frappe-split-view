@@ -1,25 +1,48 @@
 # Compatibility
 
-| App version | Frappe version | Declaration | Tested status |
+| App version | Declared Frappe version | Exact inspected reference | Status |
 | --- | --- | --- | --- |
-| 0.1.x | 16.x | `>=16.0.0,<17.0.0` | Unverified / experimental |
+| `0.1.0-alpha.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 
-The dependency range is consumed by Bench/Frappe Cloud and limits installation intent. It is not a
-claim that this app has passed runtime testing. This bootstrap was created without a local Bench,
-Frappe site, browser test environment, or current v16 source checkout.
+The metadata range controls Bench installation intent; it is not a generic v16 runtime claim. The
+selector, router maps, ListView activation seam, Form constructor, page cache, and global lifecycle
+were inspected at the exact Frappe commit above. PR #6 passed the required pinned browser jobs before
+release; this evidence remains limited to the recorded references and POC scenarios.
 
-## Promotion criteria
+## Automated environments
 
-Before describing a release as tested with Frappe v16, record the exact Frappe version/commit and pass:
+The required workflows are:
 
-- clean Bench app retrieval and site installation;
-- `bench build` and `bench --site <site> run-tests --app frappe_split_view`;
-- migration, update, and uninstall checks;
-- the embedded Form/list POC and its lifecycle tests;
-- representative normal and special DocType fallback tests.
+- clean Frappe-only `v16.31.0` Bench install/build/server tests and targeted ToDo Cypress smoke;
+- distinct required ERPNext `v16.32.0` installation and targeted Project Cypress smoke.
 
-Project, Task, Customer, and Sales Order are prospective integration cases; ERPNext-specific cases
-must remain optional because ERPNext is not a base dependency.
+The ERPNext reference inspected for the alpha is `v16.32.0`
+(`81a6f97566b83609c3917404a560b673050e907d`). ERPNext is not a Python/package dependency. A passing
+Project spec is evidence for that environment only, not general ERPNext compatibility.
 
-Do not broaden the range for v17 until a v17 CI environment and routing/Form-lifecycle validation pass.
-Internal v16 compatibility code, if the POC requires any, must be isolated and commit-pinned.
+## Supported POC envelope
+
+- existing ordinary non-Single, non-tree, non-table DocTypes;
+- one embedded Form owner and one DocType in each JavaScript session;
+- stock ListView stays mounted;
+- explicit standard Form save and repeated existing-record switching;
+- hard full-page boundary on app-controlled escape paths.
+
+## Not supported or asserted
+
+- new/copy/rename/amend/print/workflow and custom route actions;
+- multiple DocTypes or embedded Forms per session;
+- custom DocType Layout, Tree, Single, table and special controllers;
+- complete refresh/deep-link/Back/Forward restoration;
+- safe Form teardown, long-session listener stability, canonical realtime conflict parity;
+- arbitrary client scripts, child tables, permissions matrices, mobile embedded layout, or general
+  ERPNext behavior.
+
+Failures in compatibility probes must leave native List/Form routing intact. Unsupported metadata
+receives a full-page fallback rather than an attempted embedded Form.
+
+## Promotion gates
+
+Do not broaden claims until clean CI passes, browser identity/save/dirty/lifecycle assertions pass,
+and exploratory tests cover links, scripts, permissions, toolbar, grids, dialogs, accessibility,
+memory growth, error paths, install/upgrade/uninstall, and current release commits.

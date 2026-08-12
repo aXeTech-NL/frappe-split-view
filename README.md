@@ -2,79 +2,72 @@
 
 [![CI](https://github.com/aXeTech-NL/frappe-split-view/actions/workflows/ci.yml/badge.svg)](https://github.com/aXeTech-NL/frappe-split-view/actions/workflows/ci.yml)
 
-Frappe Split View is an experimental app intended to add a generic master-detail view to Frappe
-Desk: a record list on the left and the selected document on the right.
+Frappe Split View is an **experimental technical POC** for Frappe Desk. It adds Split to the
+standard v16 view selector, keeps the stock ListView mounted on the left, and mounts one persistent
+stock `frappe.ui.form.Form` for existing records of one DocType on the right.
 
-> **Bootstrap status:** this repository does not yet implement Split View. It is not production-ready.
-> Embedding Frappe's standard Form while a List View remains active is an unproven technical POC and
-> the next milestone.
+> `0.1.0-alpha.1` is not production-ready or a generic compatibility claim. PR #6 passed the
+> required pinned Frappe/ERPNext browser jobs, static checks, and CodeQL before release.
+
+## What the POC proves
+
+- `/desk/<doctype>/view/split` is a normal `ListFactory` view.
+- List filters, sort controls, actions, paging, and scroll remain owned by the stock ListView.
+- Primary record activation loads an existing record into a real stock Form without FormFactory or
+  `frappe.container.change_to`.
+- The same Form object switches records and explicit standard Save is available.
+- Dirty record switching, close, and all `frappe.set_route`-driven navigation are blocked.
+- Full-page, narrow-screen, Form-link, and active-owner `frappe.set_route` transitions use a hard
+  browser navigation so a second Form is not created in the same JavaScript session.
+- The divider width is the only persisted state and is bounded in `localStorage`.
+
+Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-list`,
+`data-split-view-detail`, `data-split-view-divider`, `data-split-form-host`, and root
+`data-doctype`/`data-selected-name`.
 
 ## Compatibility
 
-| App version | Declared Frappe range | Tested status |
-| --- | --- | --- |
-| 0.1.x | `>=16.0.0,<17.0.0` | Unverified / experimental |
+| App version | Declared Frappe range | Inspected reference | Status |
+| --- | --- | --- | --- |
+| `0.1.0-alpha.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 
-The package metadata declares Frappe v16 compatibility, but no Bench or Frappe runtime was available
-for this bootstrap. Static tests do not establish runtime compatibility. See
+Required CI pins ERPNext Project integration to ERPNext `v16.32.0`
+(`81a6f97566b83609c3917404a560b673050e907d`). The app does not depend on ERPNext. See
 [compatibility notes](docs/compatibility.md).
 
-## Planned capabilities
-
-Subject to the POC, the project intends to provide a generic list/detail layout, reuse the standard
-Form where safely possible, preserve routing and history, support a resizable divider, and fall back
-to full-page Form View on narrow screens. None of these features is implemented yet.
-
-## Installation (for development validation)
-
-There is no functional release tag yet. In a Frappe v16 Bench, a development checkout can eventually
-be evaluated with:
+## Installation for evaluation
 
 ```bash
 bench get-app https://github.com/aXeTech-NL/frappe-split-view
 bench --site <site> install-app frappe_split_view
-bench build
+bench build --app frappe_split_view
 bench restart
 ```
 
-Replace `<site>` with the target site. Production installations should eventually pin a release tag
-with `bench get-app --branch vX.Y.Z ...`; do not deploy the current bootstrap in production.
-
-## Updating and configuration
-
-No runtime feature, configuration, or migration is present. Once releases exist, update by checking
-out an explicit release tag, running `bench --site <site> migrate`, rebuilding assets, and restarting.
+Use only a disposable Frappe v16 site. Select **Split View** from a normal DocType's view menu.
 
 ## Known limitations
 
-- Split View, the view-selector entry, list selection, routing, resizing, and responsive behavior are
-  not implemented.
-- Standard Form/FormView embedding, including `cur_frm`, dirty state, toolbar, scripts, child tables,
-  workflow, navigation, and teardown, has not been proven.
-- Exact Frappe v16 selector and lifecycle extension points must be inspected in a pinned runtime.
-- Install, build, test, migrate, upgrade, and uninstall have not been run locally because this
-  repository has no Bench/Frappe runtime.
-- Ordinary and special DocType behavior has not been tested.
+Only existing ordinary, non-Single, non-tree, non-table DocTypes without a custom DocType Layout are
+in scope. Unsupported metadata receives an explanatory fallback and a hard full-page action.
+
+This alpha does **not** claim complete browser Back/Forward/refresh restoration, normal Form-route
+semantics, multiple DocTypes per JavaScript session, teardown safety, realtime conflict parity,
+new/copy/rename/amend/print, workflow, arbitrary client scripts, custom route actions, child-table
+coverage, or mobile embedded forms. Form internals retain anonymous global listeners for the Desk
+session. `cur_frm` points at the embedded form only while the cached Split page is active.
 
 ## Development
 
-See [development setup](docs/development.md), [architecture](docs/architecture.md), and
-[contributing guidelines](CONTRIBUTING.md). Dependency-free bootstrap checks are:
+See [development](docs/development.md), [architecture](docs/architecture.md), and
+[contributing](CONTRIBUTING.md). Dependency-free checks include:
 
 ```bash
 python scripts/check_version.py
 python -m unittest discover -s tests -v
+node --test tests/js/*.test.mjs
 python -m compileall -q frappe_split_view scripts tests
 ```
-
-## Security
-
-Read [SECURITY.md](SECURITY.md). Do not disclose vulnerabilities in public issues.
-
-## Contributing
-
-Contributions are welcome under the [Code of Conduct](CODE_OF_CONDUCT.md). Use Conventional Commits
-and follow the pull request process in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
