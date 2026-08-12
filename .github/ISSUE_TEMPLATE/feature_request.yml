@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a generic improvement
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Describe the workflow and problem, not only a proposed UI.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Proposed behavior
+      description: Explain the expected user-visible result.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Should this apply across compatible DocTypes or to a specific DocType?
+      options:
+        - Generic across compatible DocTypes
+        - DocType-specific
+        - Unsure
+    validations:
+      required: true
+  - type: input
+    id: doctype
+    attributes:
+      label: Relevant DocType (if specific)
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include existing Frappe behavior or extensions you evaluated.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched for an existing request.
+          required: true
+        - label: This request does not assume the unproven embedded-Form POC already works.
+          required: true

@@ -1,0 +1,75 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is experimental. Do not report security vulnerabilities here; follow SECURITY.md.
+  - type: input
+    id: frappe-version
+    attributes:
+      label: Frappe version
+      description: Include the exact version or commit.
+      placeholder: v16.x.y
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: Frappe Split View version
+      placeholder: v0.x.y or commit SHA
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: Firefox 140, Chromium 138, etc.
+    validations:
+      required: true
+  - type: input
+    id: doctype
+    attributes:
+      label: DocType
+      description: Identify whether it is standard, custom, Single, Tree, or otherwise special.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output or traceback
+      description: Remove secrets and personal or business data before pasting logs.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched for an existing issue.
+          required: true
+        - label: I removed secrets and sensitive data from this report.
+          required: true

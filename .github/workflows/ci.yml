@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: Static and version checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Validate metadata version
+        run: python scripts/check_version.py
+      - name: Compile Python sources
+        run: python -m compileall -q frappe_split_view scripts tests
+      - name: Run dependency-free tests
+        run: python -m unittest discover -s tests -v
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+
+  bench:
+    name: Clean Frappe v16 Bench
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+      redis-cache:
+        image: redis:7-alpine
+        ports:
+          - 13000:6379
+      redis-queue:
+        image: redis:7-alpine
+        ports:
+          - 11000:6379
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: frappe-split-view
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install Bench prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes mariadb-client libmariadb-dev
+          python -m pip install --upgrade pip
+          python -m pip install frappe-bench
+          corepack enable
+      - name: Initialize clean Frappe v16 Bench
+        run: >-
+          bench init
+          --frappe-branch version-16
+          --python "$(which python)"
+          --skip-assets
+          --skip-redis-config-generation
+          frappe-bench
+      - name: Configure services and create test site
+        working-directory: frappe-bench
+        run: |
+          bench set-config -g db_host 127.0.0.1
+          bench set-config -g redis_cache redis://127.0.0.1:13000
+          bench set-config -g redis_queue redis://127.0.0.1:11000
+          bench new-site ci.test --db-root-password root --admin-password admin --no-mariadb-socket
+          bench --site ci.test set-config allow_tests true
+      - name: Install app from clean checkout
+        working-directory: frappe-bench
+        run: |
+          bench get-app --skip-assets "$GITHUB_WORKSPACE/frappe-split-view"
+          bench --site ci.test install-app frappe_split_view
+      - name: Build app assets
+        working-directory: frappe-bench
+        run: bench build --app frappe_split_view
+      - name: Run app tests
+        working-directory: frappe-bench
+        run: bench --site ci.test run-tests --app frappe_split_view
