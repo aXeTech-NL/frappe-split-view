@@ -1,51 +1,47 @@
 context("Frappe Split View ERPNext Project POC", () => {
-  const marker = `Split Project ${Date.now()}`;
-  let company;
+  const firstProjectName = "Frappe Split View POC Project One";
+  const secondProjectName = "Frappe Split View POC Project Two";
   let first;
   let second;
 
   before(() => {
     cy.login();
-    cy.visit("/desk");
-    cy.request(
-      "GET",
-      "/api/resource/Company?fields=[%22name%22]&limit_page_length=1",
-    )
-      .then(({ body }) => {
-        if (body.data[0]?.name) return body.data[0];
-        return cy.insert_doc("Company", {
-          company_name: `${marker} Company`,
-          abbr: `SV${String(Date.now()).slice(-3)}`,
-          default_currency: "USD",
-          country: "United States",
-        });
-      })
-      .then((companyDoc) => {
-        company = companyDoc.name;
-        return cy.insert_doc("Project", {
-          project_name: `${marker} One`,
-          company,
-          status: "Open",
-        });
-      })
-      .then((doc) => {
-        first = doc.name;
-        return cy.insert_doc("Project", {
-          project_name: `${marker} Two`,
-          company,
-          status: "Open",
-        });
-      })
-      .then((doc) => {
-        second = doc.name;
-      });
+    cy.request({
+      method: "GET",
+      url: "/api/resource/Project",
+      qs: {
+        fields: JSON.stringify(["name", "project_name"]),
+        filters: JSON.stringify([
+          [
+            "Project",
+            "project_name",
+            "in",
+            [firstProjectName, secondProjectName],
+          ],
+        ]),
+        limit_page_length: 2,
+      },
+    }).then(({ body }) => {
+      const byProjectName = Object.fromEntries(
+        body.data.map((project) => [project.project_name, project.name]),
+      );
+      first = byProjectName[firstProjectName];
+      second = byProjectName[secondProjectName];
+      expect(first).to.be.a("string").and.not.be.empty;
+      expect(second).to.be.a("string").and.not.be.empty;
+    });
   });
 
   it("keeps one stock Project Form while switching existing Projects", () => {
     cy.visit("/desk/project/view/split");
     cy.window().then((win) =>
       win.cur_list.filter_area.add([
-        ["Project", "project_name", "like", `%${marker}%`],
+        [
+          "Project",
+          "project_name",
+          "in",
+          [firstProjectName, secondProjectName],
+        ],
       ]),
     );
     cy.get(`[data-split-view-list] a[data-name="${first}"]`).first().click();

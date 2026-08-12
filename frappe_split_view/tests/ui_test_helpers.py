@@ -28,6 +28,20 @@ def setup_erpnext_project_poc() -> str:
             }
         ).insert(ignore_permissions=True)
 
+    for project_name in (
+        "Frappe Split View POC Project One",
+        "Frappe Split View POC Project Two",
+    ):
+        if not frappe.db.exists("Project", {"project_name": project_name}):
+            frappe.get_doc(
+                {
+                    "doctype": "Project",
+                    "project_name": project_name,
+                    "company": company_name,
+                    "status": "Open",
+                }
+            ).insert(ignore_permissions=True)
+
     # A Company marks ERPNext complete, while fresh Frappe normally also requires a
     # non-Administrator user. This fixture intentionally skips the interactive wizard,
     # so explicitly mark both setup-bearing apps complete before opening Desk.
@@ -40,6 +54,7 @@ def setup_erpnext_project_poc() -> str:
             1,
         )
     frappe.db.set_single_value("System Settings", "setup_complete", 1)
+    frappe.db.set_default("desktop:home_page", "workspace")
     frappe.clear_cache()
     if not frappe.is_setup_complete():
         frappe.throw("ERPNext Project POC setup state is incomplete")

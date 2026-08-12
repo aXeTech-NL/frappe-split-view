@@ -173,7 +173,7 @@ export class SplitFormAdapter {
       if (generation !== this.generation) return false;
       this.selectedName = name;
       this.detailOpen = true;
-      this.host.dataset.formHost = "true";
+      this.host.dataset.splitFormHost = "true";
       this.host.dataset.formInstanceId = this.debugId;
       this.onSelection?.(name);
       if (this.pageVisible) window.cur_frm = this.frm;
