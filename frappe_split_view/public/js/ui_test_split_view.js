@@ -76,7 +76,9 @@ context("Frappe Split View ToDo POC", () => {
       .should("be.visible")
       .click();
     cy.wait("@saveTodo");
-    cy.window().then((win) => expect(win.__splitFormIdentity.is_dirty()).to.eq(false));
+    cy.window().should((win) =>
+      expect(win.__splitFormIdentity.is_dirty()).to.eq(false),
+    );
     cy.request("GET", `/api/resource/ToDo/${encodeURIComponent(second)}`).then(
       ({ body }) => {
         expect(body.data.priority).to.eq(savedPriority);
