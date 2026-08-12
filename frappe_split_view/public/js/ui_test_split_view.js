@@ -57,7 +57,7 @@ context("Frappe Split View ToDo POC", () => {
       win.__splitFormIdentity = owner.frm;
     });
 
-    cy.get(`[data-split-view-list] a[data-name="${second}"]`).first().click();
+    cy.window().then((win) => win.cur_list.activateRecord(second));
     cy.window().then((win) => {
       expect(win.frappe_split_view.debug.owner.frm).to.eq(
         win.__splitFormIdentity,
@@ -108,6 +108,8 @@ context("Frappe Split View ToDo POC", () => {
 
   it("guards dirty set_route calls, then hard-navigates the clean boundary", () => {
     cy.visit("/desk/todo/view/split");
+    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should("be.visible");
+    cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) => win.cur_list.activateRecord(first));
     cy.get("[data-split-form-host='true']").should("exist");
     cy.window().then(async (win) => {
@@ -129,6 +131,8 @@ context("Frappe Split View ToDo POC", () => {
 
   it("preserves modified and custom list links", () => {
     cy.visit("/desk/todo/view/split");
+    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should("be.visible");
+    cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) => {
       let activations = 0;
       win.cur_list.activateRecord = () => {
@@ -172,6 +176,8 @@ context("Frappe Split View ToDo POC", () => {
 
   it("uses a hard navigation boundary for full-page open", () => {
     cy.visit("/desk/todo/view/split");
+    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should("be.visible");
+    cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) => {
       win.__splitDocumentSentinel = "must-disappear";
       return win.cur_list.activateRecord(first);

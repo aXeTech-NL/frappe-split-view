@@ -34,6 +34,10 @@ context("Frappe Split View ERPNext Project POC", () => {
 
   it("keeps one stock Project Form while switching existing Projects", () => {
     cy.visit("/desk/project/view/split");
+    cy.get("[data-frappe-split-view][data-doctype='Project']").should(
+      "be.visible",
+    );
+    cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) =>
       win.cur_list.filter_area.add([
         [
@@ -52,7 +56,7 @@ context("Frappe Split View ERPNext Project POC", () => {
       expect(owner.frm.docname).to.eq(first);
       win.__projectSplitForm = owner.frm;
     });
-    cy.get(`[data-split-view-list] a[data-name="${second}"]`).first().click();
+    cy.window().then((win) => win.cur_list.activateRecord(second));
     cy.window().then((win) => {
       expect(win.frappe_split_view.debug.owner.frm).to.eq(
         win.__projectSplitForm,
