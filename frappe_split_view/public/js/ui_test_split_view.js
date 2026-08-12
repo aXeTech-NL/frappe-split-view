@@ -2,6 +2,7 @@ context("Frappe Split View ToDo POC", () => {
   const marker = `split-view-${Date.now()}`;
   let first;
   let second;
+  let savedPriority;
 
   before(() => {
     cy.login();
@@ -66,23 +67,27 @@ context("Frappe Split View ToDo POC", () => {
     });
 
     cy.intercept("POST", "/api/method/frappe.desk.form.save.savedocs").as("saveTodo");
-    cy.get("[data-split-form-host] .frappe-control[data-fieldname='priority'] select")
+    cy.window().then((win) => {
+      savedPriority =
+        win.__splitFormIdentity.doc.priority === "High" ? "Low" : "High";
+      return win.__splitFormIdentity.set_value("priority", savedPriority);
+    });
+    cy.get("[data-split-form-host] .primary-action[data-label='Save']")
       .should("be.visible")
-      .select("High");
-    cy.get("[data-split-form-host] button[data-label='Save']")
-      .filter(":visible")
-      .first()
       .click();
     cy.wait("@saveTodo");
     cy.window().then((win) => expect(win.__splitFormIdentity.is_dirty()).to.eq(false));
     cy.request("GET", `/api/resource/ToDo/${encodeURIComponent(second)}`).then(
       ({ body }) => {
-        expect(body.data.priority).to.eq("High");
+        expect(body.data.priority).to.eq(savedPriority);
       },
     );
 
     cy.window().then(async (win) => {
-      await win.__splitFormIdentity.set_value("priority", "Low");
+      await win.__splitFormIdentity.set_value(
+        "priority",
+        savedPriority === "High" ? "Low" : "High",
+      );
     });
     cy.window().then((win) => win.cur_list.activateRecord(first));
     cy.window().then((win) => {
@@ -95,7 +100,7 @@ context("Frappe Split View ToDo POC", () => {
     );
 
     cy.window().then(async (win) => {
-      await win.__splitFormIdentity.set_value("priority", "High");
+      await win.__splitFormIdentity.set_value("priority", savedPriority);
       expect(await win.cur_list.splitFormAdapter.save()).to.eq(true);
       expect(win.cur_list.closeDetail()).to.eq(true);
       win.cur_list.page.wrapper.trigger("hide");
@@ -113,7 +118,10 @@ context("Frappe Split View ToDo POC", () => {
     cy.window().then((win) => win.cur_list.activateRecord(first));
     cy.get("[data-split-form-host='true']").should("exist");
     cy.window().then(async (win) => {
-      await win.frappe_split_view.debug.owner.frm.set_value("priority", "Low");
+      await win.frappe_split_view.debug.owner.frm.set_value(
+        "description",
+        `${marker}-dirty-route`,
+      );
       expect(await win.frappe.set_route("Form", "ToDo", second)).to.eq(false);
       expect(win.location.pathname).to.eq("/desk/todo/view/split");
       expect(win.frappe_split_view.debug.owner.frm.docname).to.eq(first);
@@ -121,8 +129,8 @@ context("Frappe Split View ToDo POC", () => {
       return win.frappe.set_route("Form", "ToDo", second);
     });
     cy.location("pathname").should("include", second);
-    cy.window().then((win) => {
-      expect(win.frappe.get_route()[0]).to.eq("Form");
+    cy.window().should((win) => {
+      expect(win.frappe.get_route()?.[0]).to.eq("Form");
       expect(
         win.document.querySelectorAll("[data-frappe-split-view]"),
       ).to.have.length(0);
@@ -187,9 +195,9 @@ context("Frappe Split View ToDo POC", () => {
       .should("have.attr", "type", "button")
       .click();
     cy.location("pathname").should("include", first);
-    cy.window().then((win) => {
+    cy.window().should((win) => {
       expect(win.__splitDocumentSentinel).to.eq(undefined);
-      expect(win.frappe.get_route()[0]).to.eq("Form");
+      expect(win.frappe.get_route()?.[0]).to.eq("Form");
       expect(
         win.document.querySelectorAll("[data-frappe-split-view]"),
       ).to.have.length(0);
