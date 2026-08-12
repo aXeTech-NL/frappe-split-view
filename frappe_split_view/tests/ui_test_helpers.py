@@ -28,8 +28,20 @@ def setup_erpnext_project_poc() -> str:
             }
         ).insert(ignore_permissions=True)
 
-    # ERPNext is considered setup once a Company exists. Refresh the singleton that
-    # drives frappe.is_setup_complete() so Desk does not reroute the browser POC.
+    # A Company marks ERPNext complete, while fresh Frappe normally also requires a
+    # non-Administrator user. This fixture intentionally skips the interactive wizard,
+    # so explicitly mark both setup-bearing apps complete before opening Desk.
     frappe.get_single("Installed Applications").update_versions()
+    for app_name in ("frappe", "erpnext"):
+        frappe.db.set_value(
+            "Installed Application",
+            {"app_name": app_name},
+            "is_setup_complete",
+            1,
+        )
+    frappe.db.set_single_value("System Settings", "setup_complete", 1)
+    frappe.clear_cache()
+    if not frappe.is_setup_complete():
+        frappe.throw("ERPNext Project POC setup state is incomplete")
     frappe.db.commit()
     return company_name

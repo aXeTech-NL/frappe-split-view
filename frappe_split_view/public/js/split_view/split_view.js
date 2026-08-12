@@ -97,11 +97,19 @@ export class SplitView extends frappe.views.ListView {
     });
     this.applyStoredWidth();
     this.bindSplitEvents();
-    this.page.wrapper.on(`hide.frappe-split-view-${this.instanceId}`, () =>
-      this.splitFormAdapter.hide(),
+    this.page.wrapper.on(
+      `hide.frappe-split-view-${this.instanceId}`,
+      (event) => {
+        if (event.target === this.page.wrapper.get(0))
+          this.splitFormAdapter.hide();
+      },
     );
-    this.page.wrapper.on(`show.frappe-split-view-${this.instanceId}`, () =>
-      this.splitFormAdapter.show(),
+    this.page.wrapper.on(
+      `show.frappe-split-view-${this.instanceId}`,
+      (event) => {
+        if (event.target === this.page.wrapper.get(0))
+          this.splitFormAdapter.show();
+      },
     );
   }
 
