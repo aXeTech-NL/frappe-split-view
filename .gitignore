@@ -1,0 +1,27 @@
+# Agent/runtime artifacts
+.pi-subagents/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+.venv/
+venv/
+
+# Frappe/Bench generated artifacts
+*.log
+sites/
+assets/
+
+# Node/editor/OS
+node_modules/
+.DS_Store
+.idea/
+.vscode/
+*.swp

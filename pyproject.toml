@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: MIT
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "frappe_split_view"
+version = "0.1.0"
+description = "A generic master-detail Split View for Frappe Desk."
+readme = "README.md"
+requires-python = ">=3.14"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Frappe Split View contributors" },
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.14",
+]
+
+[project.urls]
+Repository = "https://github.com/aXeTech-NL/frappe-split-view"
+Documentation = "https://github.com/aXeTech-NL/frappe-split-view/tree/main/docs"
+Issues = "https://github.com/aXeTech-NL/frappe-split-view/issues"
+
+[tool.bench.frappe-dependencies]
+frappe = ">=16.0.0,<17.0.0"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
