@@ -1,0 +1,192 @@
+context("Frappe Split View ToDo POC", () => {
+  const marker = `split-view-${Date.now()}`;
+  let first;
+  let second;
+
+  before(() => {
+    cy.login();
+    cy.visit("/desk");
+    cy.insert_doc("ToDo", {
+      description: `${marker}-one`,
+      status: "Open",
+      priority: "Medium",
+    })
+      .then((doc) => {
+        first = doc.name;
+        return cy.insert_doc("ToDo", {
+          description: `${marker}-two`,
+          status: "Open",
+          priority: "Low",
+        });
+      })
+      .then((doc) => {
+        second = doc.name;
+      });
+  });
+
+  it("registers Split and reuses one real stock Form", () => {
+    cy.visit("/desk/todo/view/list");
+    cy.get(".custom-btn-group [data-toggle='dropdown']").first().click();
+    cy.get("[data-view='Split']").should("be.visible").click();
+    cy.location("pathname").should("eq", "/desk/todo/view/split");
+    cy.get("[data-frappe-split-view]")
+      .should("have.attr", "data-doctype", "ToDo")
+      .within(() => {
+        cy.get("[data-split-view-list]").should("be.visible");
+        cy.get("[data-split-view-detail]").should("exist");
+        cy.get("[data-split-view-divider]").should("exist");
+      });
+
+    cy.window().then((win) =>
+      win.cur_list.filter_area.add([
+        ["ToDo", "description", "like", `%${marker}%`],
+      ]),
+    );
+    cy.get(`[data-split-view-list] a[data-name="${first}"]`).first().click();
+    cy.get("[data-split-form-host='true']").should("be.visible");
+    cy.window().then((win) => {
+      const root = win.document.querySelector("[data-frappe-split-view]");
+      const owner = win.frappe_split_view.debug.owner;
+      expect(owner.frm).to.be.instanceOf(win.frappe.ui.form.Form);
+      expect(owner.frm.docname).to.eq(first);
+      expect(win.frappe.container.page).to.eq(win.cur_list.parent);
+      expect(win.frappe.ui.pages[win.frappe.get_route_str()]).to.eq(
+        win.cur_list.page,
+      );
+      expect(root.dataset.selectedName).to.eq(first);
+      win.__splitFormIdentity = owner.frm;
+    });
+
+    cy.get(`[data-split-view-list] a[data-name="${second}"]`).first().click();
+    cy.window().then((win) => {
+      expect(win.frappe_split_view.debug.owner.frm).to.eq(
+        win.__splitFormIdentity,
+      );
+      expect(win.__splitFormIdentity.docname).to.eq(second);
+    });
+
+    cy.intercept("POST", "/api/method/frappe.desk.form.save.savedocs").as("saveTodo");
+    cy.get("[data-split-form-host] .frappe-control[data-fieldname='priority'] select")
+      .should("be.visible")
+      .select("High");
+    cy.get("[data-split-form-host] button[data-label='Save']")
+      .filter(":visible")
+      .first()
+      .click();
+    cy.wait("@saveTodo");
+    cy.window().then((win) => expect(win.__splitFormIdentity.is_dirty()).to.eq(false));
+    cy.request("GET", `/api/resource/ToDo/${encodeURIComponent(second)}`).then(
+      ({ body }) => {
+        expect(body.data.priority).to.eq("High");
+      },
+    );
+
+    cy.window().then(async (win) => {
+      await win.__splitFormIdentity.set_value("priority", "Low");
+    });
+    cy.window().then((win) => win.cur_list.activateRecord(first));
+    cy.window().then((win) => {
+      expect(win.__splitFormIdentity.docname).to.eq(second);
+      expect(win.__splitFormIdentity.is_dirty()).to.eq(true);
+    });
+    cy.window().then((win) => expect(win.cur_list.closeDetail()).to.eq(false));
+    cy.window().then((win) =>
+      expect(win.cur_frm).to.eq(win.__splitFormIdentity),
+    );
+
+    cy.window().then(async (win) => {
+      await win.__splitFormIdentity.set_value("priority", "High");
+      expect(await win.cur_list.splitFormAdapter.save()).to.eq(true);
+      expect(win.cur_list.closeDetail()).to.eq(true);
+      win.cur_list.page.wrapper.trigger("hide");
+      expect(win.cur_frm).to.eq(null);
+      win.cur_list.page.wrapper.trigger("show");
+      expect(win.cur_frm).to.eq(null);
+      expect(win.cur_list.splitFormAdapter.detailOpen).to.eq(false);
+    });
+  });
+
+  it("guards dirty set_route calls, then hard-navigates the clean boundary", () => {
+    cy.visit("/desk/todo/view/split");
+    cy.window().then((win) => win.cur_list.activateRecord(first));
+    cy.get("[data-split-form-host='true']").should("exist");
+    cy.window().then(async (win) => {
+      await win.frappe_split_view.debug.owner.frm.set_value("priority", "Low");
+      expect(await win.frappe.set_route("Form", "ToDo", second)).to.eq(false);
+      expect(win.location.pathname).to.eq("/desk/todo/view/split");
+      expect(win.frappe_split_view.debug.owner.frm.docname).to.eq(first);
+      expect(await win.cur_list.splitFormAdapter.save()).to.eq(true);
+      return win.frappe.set_route("Form", "ToDo", second);
+    });
+    cy.location("pathname").should("include", second);
+    cy.window().then((win) => {
+      expect(win.frappe.get_route()[0]).to.eq("Form");
+      expect(
+        win.document.querySelectorAll("[data-frappe-split-view]"),
+      ).to.have.length(0);
+    });
+  });
+
+  it("preserves modified and custom list links", () => {
+    cy.visit("/desk/todo/view/split");
+    cy.window().then((win) => {
+      let activations = 0;
+      win.cur_list.activateRecord = () => {
+        activations += 1;
+      };
+      const currentTarget = win.document.createElement("div");
+      const custom = win.document.createElement("a");
+      custom.dataset.name = first;
+      custom.href = `/desk/custom-route/${encodeURIComponent(first)}`;
+      currentTarget.append(custom);
+      let prevented = false;
+      win.cur_list.splitListAdapter.handleActivation({
+        button: 0,
+        target: custom,
+        currentTarget,
+        preventDefault: () => {
+          prevented = true;
+        },
+        stopImmediatePropagation: () => {},
+      });
+      expect(prevented).to.eq(false);
+      expect(activations).to.eq(0);
+      const canonical = win.document.createElement("a");
+      canonical.dataset.name = first;
+      canonical.href = win.frappe.utils.get_form_link("ToDo", first);
+      currentTarget.replaceChildren(canonical);
+      win.cur_list.splitListAdapter.handleActivation({
+        button: 0,
+        ctrlKey: true,
+        target: canonical,
+        currentTarget,
+        preventDefault: () => {
+          prevented = true;
+        },
+        stopImmediatePropagation: () => {},
+      });
+      expect(prevented).to.eq(false);
+      expect(activations).to.eq(0);
+    });
+  });
+
+  it("uses a hard navigation boundary for full-page open", () => {
+    cy.visit("/desk/todo/view/split");
+    cy.window().then((win) => {
+      win.__splitDocumentSentinel = "must-disappear";
+      return win.cur_list.activateRecord(first);
+    });
+    cy.get("[data-split-form-host='true']").should("exist");
+    cy.get("[data-split-open-full]")
+      .should("have.attr", "type", "button")
+      .click();
+    cy.location("pathname").should("include", first);
+    cy.window().then((win) => {
+      expect(win.__splitDocumentSentinel).to.eq(undefined);
+      expect(win.frappe.get_route()[0]).to.eq("Form");
+      expect(
+        win.document.querySelectorAll("[data-frappe-split-view]"),
+      ).to.have.length(0);
+    });
+  });
+});
