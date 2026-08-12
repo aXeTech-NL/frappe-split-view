@@ -181,6 +181,30 @@ context("Frappe Split View ToDo POC", () => {
       });
       expect(prevented).to.eq(false);
       expect(activations).to.eq(0);
+
+      const renderedAnchor = win.document.querySelector(
+        "[data-split-view-list] .list-subject a[data-name]",
+      );
+      expect(renderedAnchor).not.to.eq(null);
+      let renderedDefaultPrevented = null;
+      win.document.addEventListener(
+        "click",
+        (event) => {
+          if (event.target === renderedAnchor)
+            renderedDefaultPrevented = event.defaultPrevented;
+        },
+        { once: true },
+      );
+      renderedAnchor.dispatchEvent(
+        new win.MouseEvent("click", {
+          bubbles: true,
+          button: 0,
+          cancelable: true,
+          ctrlKey: true,
+        }),
+      );
+      expect(renderedDefaultPrevented).to.eq(false);
+      expect(activations).to.eq(0);
     });
   });
 

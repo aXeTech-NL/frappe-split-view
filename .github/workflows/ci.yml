@@ -65,9 +65,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes mariadb-client libmariadb-dev
-          python -m pip install --upgrade pip frappe-bench
+          python -m pip install --upgrade pip 'frappe-bench==5.31.0'
           corepack enable
-      - uses: browser-actions/setup-chrome@latest
+      - uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd
         id: setup-chrome
       - name: Initialize pinned Frappe v16 Bench
         run: >-
@@ -155,9 +155,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes mariadb-client libmariadb-dev
-          python -m pip install --upgrade pip frappe-bench
+          python -m pip install --upgrade pip 'frappe-bench==5.31.0'
           corepack enable
-      - uses: browser-actions/setup-chrome@latest
+      - uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd
         id: setup-chrome
       - name: Initialize pinned Frappe and ERPNext v16
         run: >-

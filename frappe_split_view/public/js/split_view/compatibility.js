@@ -53,7 +53,11 @@ export function routeArgumentsToPath(router, args) {
   }
 }
 
-export function installRouteCompatibility(frappeObject, getActiveOwner) {
+export function installRouteCompatibility(
+  frappeObject,
+  getActiveOwner,
+  browserWindow = globalThis.window,
+) {
   const router = frappeObject?.router;
   if (
     !router ||
@@ -73,9 +77,27 @@ export function installRouteCompatibility(frappeObject, getActiveOwner) {
     if (!owner) return nativeSetRoute.apply(this, args);
     try {
       let path = routeArgumentsToPath(this, args);
-      if (!path) {
+      if (
+        !path ||
+        (path !== "/desk" && !String(path).startsWith("/desk/"))
+      ) {
         owner.onUnsafeRoute?.();
         return Promise.resolve(false);
+      }
+      const routeHash = frappeObject.route_hash || "";
+      if (frappeObject.open_in_new_tab) {
+        if (
+          !browserWindow?.localStorage ||
+          typeof browserWindow.open !== "function"
+        ) {
+          owner.onUnsafeRoute?.();
+          return Promise.resolve(false);
+        }
+        browserWindow.localStorage.route_options = JSON.stringify(
+          frappeObject.route_options,
+        );
+        browserWindow.open(`${path}${routeHash}`, "_blank");
+        return Promise.resolve(true);
       }
       const routeOptions = frappeObject.route_options || {};
       const query = Object.entries(routeOptions)
@@ -85,13 +107,14 @@ export function installRouteCompatibility(frappeObject, getActiveOwner) {
         )
         .join("&");
       if (query) path += `${path.includes("?") ? "&" : "?"}${query}`;
-      if (frappeObject.route_hash) path += frappeObject.route_hash;
+      path += routeHash;
       return Promise.resolve(owner.onRoute(path));
     } finally {
       // Match native set_route cleanup even for a blocked or hard-routed call.
       frappeObject.route_flags = {};
       frappeObject.route_options = null;
       frappeObject.route_hash = null;
+      frappeObject.open_in_new_tab = false;
     }
   };
   Object.defineProperty(router, ROUTE_PATCH_FLAG, { value: true });

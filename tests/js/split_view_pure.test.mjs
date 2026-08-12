@@ -185,8 +185,17 @@ test("route compatibility wrapper is active-owner-only and idempotent", async ()
     route_options: { status: "Open" },
     route_hash: "#section",
   };
+  const openedTabs = [];
+  const browserWindow = {
+    localStorage: {},
+    open: (...args) => openedTabs.push(args),
+  };
   assert.equal(
-    installRouteCompatibility(frappeObject, () => activeOwner).valid,
+    installRouteCompatibility(
+      frappeObject,
+      () => activeOwner,
+      browserWindow,
+    ).valid,
     true,
   );
   const wrapped = router.set_route;
@@ -210,6 +219,24 @@ test("route compatibility wrapper is active-owner-only and idempotent", async ()
   assert.deepEqual(frappeObject.route_flags, {});
   assert.equal(frappeObject.route_options, null);
   assert.equal(frappeObject.route_hash, null);
+  assert.equal(frappeObject.open_in_new_tab, false);
+
+  delegatedPath = null;
+  frappeObject.route_flags = { test: true };
+  frappeObject.route_options = { priority: "High" };
+  frappeObject.route_hash = "#details";
+  frappeObject.open_in_new_tab = true;
+  assert.equal(await router.set_route("Form", "ToDo", "XYZ"), true);
+  assert.equal(delegatedPath, null);
+  assert.deepEqual(openedTabs, [["/desk/Form/ToDo/XYZ#details", "_blank"]]);
+  assert.equal(
+    browserWindow.localStorage.route_options,
+    JSON.stringify({ priority: "High" }),
+  );
+  assert.deepEqual(frappeObject.route_flags, {});
+  assert.equal(frappeObject.route_options, null);
+  assert.equal(frappeObject.route_hash, null);
+  assert.equal(frappeObject.open_in_new_tab, false);
 });
 
 test("compatibility gate fails closed", () => {

@@ -33,4 +33,4 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Fixed
 
-- Not applicable; this is the first functional POC.
+- Preserved native new-tab routing semantics while the active embedded Form route boundary is installed.

@@ -6,7 +6,8 @@
 
 The metadata range controls Bench installation intent; it is not a generic v16 runtime claim. The
 selector, router maps, ListView activation seam, Form constructor, page cache, and global lifecycle
-were inspected at the exact Frappe commit above. Real CI results are pending until GitHub runs.
+were inspected at the exact Frappe commit above. PR #6 passed the required pinned browser jobs before
+release; this evidence remains limited to the recorded references and POC scenarios.
 
 ## Automated environments
 

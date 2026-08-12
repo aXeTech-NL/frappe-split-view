@@ -6,8 +6,8 @@ Frappe Split View is an **experimental technical POC** for Frappe Desk. It adds 
 standard v16 view selector, keeps the stock ListView mounted on the left, and mounts one persistent
 stock `frappe.ui.form.Form` for existing records of one DocType on the right.
 
-> `0.1.0-alpha.1` is not production-ready or a generic compatibility claim. Real GitHub CI results
-> are pending until the workflows run.
+> `0.1.0-alpha.1` is not production-ready or a generic compatibility claim. PR #6 passed the
+> required pinned Frappe/ERPNext browser jobs, static checks, and CodeQL before release.
 
 ## What the POC proves
 

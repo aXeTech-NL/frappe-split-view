@@ -56,7 +56,8 @@ hard full-page boundary. It does not mock Form as runtime proof.
 
 ## Manual work still required
 
-Real GitHub CI results are pending. Before tagging, inspect repeated-switch memory/listeners and test
-links, toolbar actions, custom scripts, permissions/errors, grids, dialogs, keyboard/focus, RTL,
-narrow view, cache-busted build, migrate/upgrade/uninstall, and ERPNext Project at the recorded refs.
+PR #6 passed the required pinned GitHub CI jobs. Beyond the automated alpha gate, inspect
+repeated-switch memory/listeners and test links, toolbar actions, custom scripts, permissions/errors,
+grids, dialogs, keyboard/focus, RTL, narrow view, cache-busted build, migrate/upgrade/uninstall, and
+ERPNext Project at the recorded refs.
 Complete browser Back/Forward/refresh parity is explicitly not an alpha gate or claim.
