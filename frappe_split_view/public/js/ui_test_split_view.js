@@ -140,11 +140,11 @@ context("Frappe Split View ToDo POC", () => {
   });
 
   it("preserves modified and custom list links", () => {
+    let activations = 0;
     cy.visit("/desk/todo/view/split");
     cy.get("[data-frappe-split-view][data-doctype='ToDo']").should("be.visible");
     cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) => {
-      let activations = 0;
       win.cur_list.activateRecord = () => {
         activations += 1;
       };
@@ -181,31 +181,21 @@ context("Frappe Split View ToDo POC", () => {
       });
       expect(prevented).to.eq(false);
       expect(activations).to.eq(0);
-
-      const renderedAnchor = win.document.querySelector(
-        "[data-split-view-list] .list-subject a[data-name]",
-      );
-      expect(renderedAnchor).not.to.eq(null);
-      let renderedDefaultPrevented = null;
-      win.document.addEventListener(
-        "click",
-        (event) => {
-          if (event.target === renderedAnchor)
-            renderedDefaultPrevented = event.defaultPrevented;
-        },
-        { once: true },
-      );
-      renderedAnchor.dispatchEvent(
-        new win.MouseEvent("click", {
+    });
+    cy.get("[data-split-view-list] a[data-name]")
+      .first()
+      .then(($anchor) => {
+        const win = $anchor[0].ownerDocument.defaultView;
+        const event = new win.MouseEvent("click", {
           bubbles: true,
           button: 0,
           cancelable: true,
           ctrlKey: true,
-        }),
-      );
-      expect(renderedDefaultPrevented).to.eq(false);
-      expect(activations).to.eq(0);
-    });
+        });
+        expect($anchor[0].dispatchEvent(event)).to.eq(true);
+        expect(event.defaultPrevented).to.eq(false);
+        expect(activations).to.eq(0);
+      });
   });
 
   it("uses a hard navigation boundary for full-page open", () => {
