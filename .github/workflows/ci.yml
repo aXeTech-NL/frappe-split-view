@@ -120,7 +120,7 @@ jobs:
             --spec frappe_split_view/public/js/ui_test_split_view.js
       - name: Upload browser diagnostics on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frappe-todo-browser-diagnostics
           path: |
@@ -209,7 +209,7 @@ jobs:
             --spec frappe_split_view/public/js/ui_test_split_view_project.js
       - name: Upload ERPNext browser diagnostics on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: erpnext-project-browser-diagnostics
           path: |
