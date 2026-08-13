@@ -19,7 +19,7 @@ jobs:
     name: Static, version, and pure JS checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout_ref || github.ref }}
       - uses: actions/setup-python@v5
@@ -59,7 +59,7 @@ jobs:
         image: redis:7-alpine
         ports: ["11000:6379"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: frappe-split-view
           ref: ${{ inputs.checkout_ref || github.ref }}
@@ -150,7 +150,7 @@ jobs:
         image: redis:7-alpine
         ports: ["11000:6379"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: frappe-split-view
           ref: ${{ inputs.checkout_ref || github.ref }}
