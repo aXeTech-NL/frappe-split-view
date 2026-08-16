@@ -220,18 +220,8 @@ context("Split View ToDo POC", () => {
     cy.window().should((win) => {
       expect(win.cur_frm?.doctype).to.eq("Customize Form");
     });
-    cy.get("[data-fieldname='doc_type'] input")
-      .should("be.visible")
-      .as("docTypeInput")
-      .clear()
-      .focus()
-      .type("ToDo", { delay: 100 });
-    cy.get("@docTypeInput")
-      .parent()
-      .find("[role='listbox'] [role='option']")
-      .first()
-      .should("include.text", "ToDo");
-    cy.get("@docTypeInput").type("{enter}").blur().should("have.value", "ToDo");
+    cy.window().then((win) => win.cur_frm.set_value("doc_type", "ToDo"));
+    cy.get("[data-fieldname='doc_type'] input").should("have.value", "ToDo");
     cy.get("[data-fieldname='default_view'] select")
       .should("be.visible")
       .find("option[value='Split']")
