@@ -216,13 +216,13 @@ context("Split View ToDo POC", () => {
   });
 
   it("offers Split as a DocType default view", () => {
-    cy.visit("/desk/doctype/ToDo");
+    cy.visit("/desk/customize-form");
     cy.window().should((win) => {
-      expect(win.cur_frm?.doctype).to.eq("DocType");
-      expect(win.cur_frm?.docname).to.eq("ToDo");
+      expect(win.cur_frm?.doctype).to.eq("Customize Form");
     });
+    cy.fill_field("doc_type", "ToDo", "Link");
     cy.get("[data-fieldname='default_view'] select")
-      .should("exist")
+      .should("be.visible")
       .find("option[value='Split']")
       .should("have.length", 1);
   });
