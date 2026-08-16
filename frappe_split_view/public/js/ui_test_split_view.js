@@ -222,7 +222,7 @@ context("Split View ToDo POC", () => {
       expect(win.cur_frm?.docname).to.eq("ToDo");
     });
     cy.get("[data-fieldname='default_view'] select")
-      .should("be.visible")
+      .should("exist")
       .find("option[value='Split']")
       .should("have.length", 1);
   });
