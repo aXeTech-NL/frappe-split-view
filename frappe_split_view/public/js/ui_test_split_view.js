@@ -222,8 +222,13 @@ context("Split View ToDo POC", () => {
     });
     cy.window().then((win) => win.cur_frm.set_value("doc_type", "ToDo"));
     cy.get("[data-fieldname='doc_type'] input").should("have.value", "ToDo");
+    cy.window().should((win) => {
+      expect(win.cur_frm.fields_dict.default_view.df.options).to.include(
+        "Split",
+      );
+    });
     cy.get("[data-fieldname='default_view'] select")
-      .should("be.visible")
+      .should("exist")
       .find("option[value='Split']")
       .should("have.length", 1);
   });
