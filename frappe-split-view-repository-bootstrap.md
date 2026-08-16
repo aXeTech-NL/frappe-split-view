@@ -146,7 +146,7 @@ frappe-split-view/
 │   │       ├── split_view.scss
 │   │       └── frappe_split_view.bundle.scss
 │   │
-│   ├── frappe_split_view/
+│   ├── split_view/
 │   │   └── doctype/
 │   │       └── split_view_settings/
 │   │           ├── __init__.py

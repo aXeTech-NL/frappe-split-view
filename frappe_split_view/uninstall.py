@@ -5,9 +5,7 @@ import frappe
 
 def reset_split_default_views():
     """Remove persisted Split defaults before the view implementation disappears."""
-    doctypes = set(
-        frappe.get_all("DocType", filters={"default_view": "Split"}, pluck="name")
-    )
+    doctypes = set(frappe.get_all("DocType", filters={"default_view": "Split"}, pluck="name"))
     property_setters = frappe.get_all(
         "Property Setter",
         filters={"property": "default_view", "value": "Split"},
