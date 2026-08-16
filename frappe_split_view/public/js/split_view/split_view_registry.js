@@ -14,7 +14,7 @@ export function registerSplitView() {
   if (!window.frappe || frappe[REGISTERED]) return false;
   const status = compatibilityStatus(frappe);
   if (!status.valid) {
-    console.warn("Frappe Split View disabled:", status.reason);
+    console.warn("Split View disabled:", status.reason);
     return false;
   }
   const installed = installSelectorCompatibility(frappe);

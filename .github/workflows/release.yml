@@ -103,13 +103,13 @@ jobs:
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" \
-              --title "Frappe Split View $TAG" \
+              --title "Split View $TAG" \
               --notes-file release-notes.md \
               --prerelease="$PRERELEASE"
           else
             gh release create "$TAG" \
               --verify-tag \
-              --title "Frappe Split View $TAG" \
+              --title "Split View $TAG" \
               --notes-file release-notes.md \
               --prerelease="$PRERELEASE" \
               --latest=false

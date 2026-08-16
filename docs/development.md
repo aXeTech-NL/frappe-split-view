@@ -51,8 +51,9 @@ For the required ERPNext CI environment install `v16.32.0`, ensure setup creates
 
 The ToDo smoke asserts selector registration, stable pane attributes, a real
 `frappe.ui.form.Form`, same object identity across records, active List container/cache ownership,
-explicit save persistence through REST, dirty switch/close blocking, page hide/show `cur_frm`, and
-hard full-page boundary. It does not mock Form as runtime proof.
+current-document-only detail title, per-DocType Default View availability, explicit save persistence
+through REST, dirty switch/close blocking, page hide/show `cur_frm`, and hard full-page boundary. It
+does not mock Form as runtime proof.
 
 ## Manual work still required
 

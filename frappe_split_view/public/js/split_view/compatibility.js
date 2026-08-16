@@ -1,11 +1,69 @@
 // SPDX-License-Identifier: MIT
 
+import { splitViewEligibilityReason } from "./split_view_state.js";
+
 // Private API adapter tested against Frappe 6a329d068416768ec47ccd3326b9cc95a8d7bf99.
 // Frappe v16 has no third-party view registration API and ListViewSelect closes over
 // its view definition map. Every mutation below is feature-detected and reversible by reload.
 export const TESTED_FRAPPE_COMMIT = "6a329d068416768ec47ccd3326b9cc95a8d7bf99";
 const PATCH_FLAG = Symbol.for("frappe_split_view.v16_selector_patch");
+const DEFAULT_VIEW_PATCH_FLAG = Symbol.for(
+  "frappe_split_view.v16_default_view_patch",
+);
 const ROUTE_PATCH_FLAG = Symbol.for("frappe_split_view.v16_route_patch");
+
+export function appendSplitDefaultViewOption(options) {
+  if (Array.isArray(options))
+    return options.includes("Split") ? options : [...options, "Split"];
+  if (typeof options !== "string") return options;
+  const values = options.split(/\r?\n/);
+  if (values.includes("Split")) return options;
+  return `${options.replace(/\s+$/, "")}\nSplit`;
+}
+
+export function supportsSplitDefaultView(frappeObject, doctype) {
+  return !splitViewEligibilityReason(frappeObject, doctype);
+}
+
+function defaultViewFormProxy(frappeObject, doctype, frm) {
+  if (!frm || typeof frm.set_df_property !== "function") return frm;
+  const proxy = Object.create(frm);
+  proxy.set_df_property = function splitViewSetDfProperty(
+    fieldname,
+    property,
+    value,
+    ...args
+  ) {
+    if (
+      fieldname === "default_view" &&
+      property === "options" &&
+      supportsSplitDefaultView(frappeObject, doctype)
+    ) {
+      value = appendSplitDefaultViewOption(value);
+    }
+    return frm.set_df_property.call(frm, fieldname, property, value, ...args);
+  };
+  return proxy;
+}
+
+function installDefaultViewCompatibility(frappeObject) {
+  const { model } = frappeObject;
+  if (model[DEFAULT_VIEW_PATCH_FLAG]) return;
+  const nativeSetDefaultViews = model.set_default_views_for_doctype;
+  model.set_default_views_for_doctype = function splitViewSetDefaultViews(
+    doctype,
+    frm,
+    ...args
+  ) {
+    return nativeSetDefaultViews.call(
+      this,
+      doctype,
+      defaultViewFormProxy(frappeObject, doctype, frm),
+      ...args,
+    );
+  };
+  Object.defineProperty(model, DEFAULT_VIEW_PATCH_FLAG, { value: true });
+}
 
 export function compatibilityStatus(frappeObject) {
   const views = frappeObject?.views;
@@ -15,6 +73,10 @@ export function compatibilityStatus(frappeObject) {
   const valid = Boolean(
     ListView &&
       typeof views?.BaseList?.prototype?.setup_main_section === "function" &&
+      typeof frappeObject?.get_meta === "function" &&
+      typeof frappeObject?.model?.is_single === "function" &&
+      typeof frappeObject?.model?.set_default_views_for_doctype ===
+        "function" &&
       Select?.prototype?.setup_views &&
       Select?.prototype?.add_view_to_menu &&
       Array.isArray(views?.view_modes) &&
@@ -31,7 +93,7 @@ export function compatibilityStatus(frappeObject) {
     valid,
     reason: valid
       ? null
-      : "Required Frappe v16 ListView/router APIs are unavailable.",
+      : "Required Frappe v16 ListView/router/default-view APIs are unavailable.",
   };
 }
 
@@ -77,10 +139,7 @@ export function installRouteCompatibility(
     if (!owner) return nativeSetRoute.apply(this, args);
     try {
       let path = routeArgumentsToPath(this, args);
-      if (
-        !path ||
-        (path !== "/desk" && !String(path).startsWith("/desk/"))
-      ) {
+      if (!path || (path !== "/desk" && !String(path).startsWith("/desk/"))) {
         owner.onUnsafeRoute?.();
         return Promise.resolve(false);
       }
@@ -138,6 +197,7 @@ export function installSelectorCompatibility(frappeObject) {
       reason: "Conflicting Split view compatibility state.",
     };
   }
+  installDefaultViewCompatibility(frappeObject);
   const proto = views.ListViewSelect.prototype;
   if (!proto[PATCH_FLAG]) {
     const nativeSetupViews = proto.setup_views;

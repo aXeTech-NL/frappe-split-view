@@ -1,6 +1,6 @@
 # Contributing
 
-Frappe Split View is experimental. The current repository contains bootstrap infrastructure only;
+Split View is experimental. The current repository contains a technical POC;
 the embedded Form feasibility POC is the next milestone.
 
 ## Development setup

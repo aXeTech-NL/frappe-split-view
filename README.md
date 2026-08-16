@@ -1,13 +1,13 @@
-# Frappe Split View
+# Split View
 
-[![CI](https://github.com/aXeTech-NL/frappe-split-view/actions/workflows/ci.yml/badge.svg)](https://github.com/aXeTech-NL/frappe-split-view/actions/workflows/ci.yml)
+[![CI](https://github.com/aXeTech-NL/frappe-split-view/actions/workflows/ci.yml/badge.svg?branch=version-16)](https://github.com/aXeTech-NL/frappe-split-view/actions/workflows/ci.yml?query=branch%3Aversion-16)
 
-Frappe Split View is an **experimental technical POC** for Frappe Desk. It adds Split to the
+Split View is an **experimental technical POC** for Frappe Desk. It adds Split to the
 standard v16 view selector, keeps the stock ListView mounted on the left, and mounts one persistent
 stock `frappe.ui.form.Form` for existing records of one DocType on the right.
 
-> `0.1.0-alpha.1` is not production-ready or a generic compatibility claim. PR #6 passed the
-> required pinned Frappe/ERPNext browser jobs, static checks, and CodeQL before release.
+> `16.0.0` remains an experimental technical POC, not a production-readiness or generic
+> compatibility claim. The major version identifies the compatible Frappe release line.
 
 ## What the POC proves
 
@@ -15,21 +15,23 @@ stock `frappe.ui.form.Form` for existing records of one DocType on the right.
 - List filters, sort controls, actions, paging, and scroll remain owned by the stock ListView.
 - Primary record activation loads an existing record into a real stock Form without FormFactory or
   `frappe.container.change_to`.
-- The same Form object switches records and explicit standard Save is available.
+- The same Form object switches records, shows only the current document title, and keeps standard Save available.
+- **Split** can be selected as the Default View for each supported DocType through standard Frappe configuration.
 - Dirty record switching, close, and all `frappe.set_route`-driven navigation are blocked.
 - Full-page, narrow-screen, Form-link, and active-owner `frappe.set_route` transitions use a hard
   browser navigation so a second Form is not created in the same JavaScript session.
 - The divider width is the only persisted state and is bounded in `localStorage`.
 
 Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-list`,
-`data-split-view-detail`, `data-split-view-divider`, `data-split-form-host`, and root
+`data-split-view-detail`, `data-split-view-divider`, `data-split-form-host`,
+`data-split-document-title`, and root
 `data-doctype`/`data-selected-name`.
 
 ## Compatibility
 
 | App version | Declared Frappe range | Inspected reference | Status |
 | --- | --- | --- | --- |
-| `0.1.0-alpha.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
+| `16.0.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 
 Required CI pins ERPNext Project integration to ERPNext `v16.32.0`
 (`81a6f97566b83609c3917404a560b673050e907d`). The app does not depend on ERPNext. See
@@ -38,13 +40,16 @@ Required CI pins ERPNext Project integration to ERPNext `v16.32.0`
 ## Installation for evaluation
 
 ```bash
-bench get-app https://github.com/aXeTech-NL/frappe-split-view
+bench get-app --branch version-16 https://github.com/aXeTech-NL/frappe-split-view
 bench --site <site> install-app frappe_split_view
 bench build --app frappe_split_view
 bench restart
 ```
 
-Use only a disposable Frappe v16 site. Select **Split View** from a normal DocType's view menu.
+Use only a disposable Frappe v16 site. Select **Split** from a normal DocType's view menu.
+Administrators can also select **Split** in that DocType's **Default View** setting. The installed
+technical package identifier remains `frappe_split_view` for upgrade compatibility; its displayed
+app and module name is **Split View**.
 
 ## Known limitations
 
@@ -71,4 +76,4 @@ python -m compileall -q frappe_split_view scripts tests
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 Frappe Split View contributors.
+[MIT](LICENSE) — Copyright (c) 2026 Split View contributors.

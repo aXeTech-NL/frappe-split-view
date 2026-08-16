@@ -1,6 +1,6 @@
-context("Frappe Split View ERPNext Project POC", () => {
-  const firstProjectName = "Frappe Split View POC Project One";
-  const secondProjectName = "Frappe Split View POC Project Two";
+context("Split View ERPNext Project POC", () => {
+  const firstProjectName = "Split View POC Project One";
+  const secondProjectName = "Split View POC Project Two";
   let first;
   let second;
 
@@ -50,6 +50,13 @@ context("Frappe Split View ERPNext Project POC", () => {
     );
     cy.get(`[data-split-view-list] a[data-name="${first}"]`).first().click();
     cy.get("[data-split-form-host='true']").should("be.visible");
+    cy.get("[data-split-form-host] [data-split-document-title]")
+      .should("have.length", 1)
+      .and("have.text", firstProjectName);
+    cy.get("[data-split-form-host] .navbar-breadcrumbs > li").should(
+      "have.length",
+      1,
+    );
     cy.window().then((win) => {
       const owner = win.frappe_split_view.debug.owner;
       expect(owner.frm).to.be.instanceOf(win.frappe.ui.form.Form);
@@ -57,6 +64,9 @@ context("Frappe Split View ERPNext Project POC", () => {
       win.__projectSplitForm = owner.frm;
     });
     cy.window().then((win) => win.cur_list.activateRecord(second));
+    cy.get("[data-split-form-host] [data-split-document-title]")
+      .should("have.length", 1)
+      .and("have.text", secondProjectName);
     cy.window().then((win) => {
       expect(win.frappe_split_view.debug.owner.frm).to.eq(
         win.__projectSplitForm,

@@ -1,9 +1,9 @@
 # Release process
 
-Frappe Split View uses strict Semantic Versioning and immutable annotated `vX.Y.Z` tags. Prerelease
+Split View uses strict Semantic Versioning and immutable annotated `vX.Y.Z` tags. Prerelease
 forms such as `v0.1.0-alpha.1` are allowed. Do not use floating tags.
 
-## Alpha checklist
+## Release checklist
 
 1. Confirm package and app versions match and update the dated changelog section.
 2. Record the exact required-CI Frappe and ERPNext tags/commits and keep compatibility wording experimental.
@@ -19,8 +19,8 @@ forms such as `v0.1.0-alpha.1` are allowed. Do not use floating tags.
 9. Require review and green GitHub checks. CI results must not be described as passed before GitHub
    actually runs them.
 10. Only then commit release changes and create an annotated tag, for example:
-   `git tag -a v0.1.0-alpha.1 -m "Frappe Split View v0.1.0-alpha.1"`.
-11. Push the tag and verify prerelease notes and installation from the immutable tag.
+   `git tag -a v16.0.0 -m "Split View v16.0.0"`.
+11. Push the tag and verify release notes and installation from the immutable tag.
 
 The implementation task must not create, push, or publish the tag. Normal full-page escape testing
 must verify that a hard reload occurs before FormFactory can create another Form.
@@ -36,5 +36,5 @@ Every release note includes:
 ## Upgrade notes
 ```
 
-`0.1.0-alpha.1` is only a technical POC. Do not claim production readiness, complete routing/history,
+`16.0.0` remains a technical POC. Do not claim production readiness, complete routing/history,
 generic DocType or ERPNext support, safe teardown, or lifecycle parity.

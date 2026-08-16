@@ -12,6 +12,22 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Fixed
 
+## [16.0.0] - 2026-08-12
+
+### Added
+
+- Split is available in Frappe's per-DocType Default View options for supported DocTypes.
+- Uninstall cleanup removes persisted Split defaults before the view implementation is removed.
+
+### Changed
+
+- The displayed app and module name is now **Split View**; the stable technical package identifier remains `frappe_split_view`.
+- The embedded right-pane header shows only the current document title instead of the complete Desk breadcrumb.
+- The Frappe v16-compatible development line lives on `version-16`.
+- The app version follows the compatible Frappe major release line, starting at `16.0.0`.
+
+### Fixed
+
 ## [0.1.0-alpha.1] - 2026-08-12
 
 ### Added

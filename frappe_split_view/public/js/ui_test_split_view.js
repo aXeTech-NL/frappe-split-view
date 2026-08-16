@@ -1,4 +1,4 @@
-context("Frappe Split View ToDo POC", () => {
+context("Split View ToDo POC", () => {
   const marker = `split-view-${Date.now()}`;
   let first;
   let second;
@@ -45,6 +45,14 @@ context("Frappe Split View ToDo POC", () => {
     );
     cy.get(`[data-split-view-list] a[data-name="${first}"]`).first().click();
     cy.get("[data-split-form-host='true']").should("be.visible");
+    cy.get("[data-split-form-host] [data-split-document-title]")
+      .should("have.length", 1)
+      .and("have.text", `${marker}-one`);
+    cy.get("[data-split-form-host] .navbar-breadcrumbs > li").should(
+      "have.length",
+      1,
+    );
+    cy.get("[data-split-form-host] .navbar-breadcrumbs a").should("not.exist");
     cy.window().then((win) => {
       const root = win.document.querySelector("[data-frappe-split-view]");
       const owner = win.frappe_split_view.debug.owner;
@@ -59,6 +67,9 @@ context("Frappe Split View ToDo POC", () => {
     });
 
     cy.window().then((win) => win.cur_list.activateRecord(second));
+    cy.get("[data-split-form-host] [data-split-document-title]")
+      .should("have.length", 1)
+      .and("have.text", `${marker}-two`);
     cy.window().then((win) => {
       expect(win.frappe_split_view.debug.owner.frm).to.eq(
         win.__splitFormIdentity,
@@ -66,7 +77,9 @@ context("Frappe Split View ToDo POC", () => {
       expect(win.__splitFormIdentity.docname).to.eq(second);
     });
 
-    cy.intercept("POST", "/api/method/frappe.desk.form.save.savedocs").as("saveTodo");
+    cy.intercept("POST", "/api/method/frappe.desk.form.save.savedocs").as(
+      "saveTodo",
+    );
     cy.window().then((win) => {
       savedPriority =
         win.__splitFormIdentity.doc.priority === "High" ? "Low" : "High";
@@ -115,7 +128,9 @@ context("Frappe Split View ToDo POC", () => {
 
   it("guards dirty set_route calls, then hard-navigates the clean boundary", () => {
     cy.visit("/desk/todo/view/split");
-    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should("be.visible");
+    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should(
+      "be.visible",
+    );
     cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) => win.cur_list.activateRecord(first));
     cy.get("[data-split-form-host='true']").should("exist");
@@ -142,7 +157,9 @@ context("Frappe Split View ToDo POC", () => {
   it("preserves modified and custom list links", () => {
     let activations = 0;
     cy.visit("/desk/todo/view/split");
-    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should("be.visible");
+    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should(
+      "be.visible",
+    );
     cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) => {
       win.cur_list.activateRecord = () => {
@@ -198,9 +215,23 @@ context("Frappe Split View ToDo POC", () => {
       });
   });
 
+  it("offers Split as a DocType default view", () => {
+    cy.visit("/desk/doctype/ToDo");
+    cy.window().should((win) => {
+      expect(win.cur_frm?.doctype).to.eq("DocType");
+      expect(win.cur_frm?.docname).to.eq("ToDo");
+    });
+    cy.get("[data-fieldname='default_view'] select")
+      .should("be.visible")
+      .find("option[value='Split']")
+      .should("have.length", 1);
+  });
+
   it("uses a hard navigation boundary for full-page open", () => {
     cy.visit("/desk/todo/view/split");
-    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should("be.visible");
+    cy.get("[data-frappe-split-view][data-doctype='ToDo']").should(
+      "be.visible",
+    );
     cy.window().its("cur_list").should("not.be.null");
     cy.window().then((win) => {
       win.__splitDocumentSentinel = "must-disappear";

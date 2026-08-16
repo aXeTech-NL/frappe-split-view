@@ -5,13 +5,13 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "frappe_split_view"
-version = "0.1.0-alpha.1"
+version = "16.0.0"
 description = "A generic master-detail Split View for Frappe Desk."
 readme = "README.md"
 requires-python = ">=3.14"
 license = { file = "LICENSE" }
 authors = [
-  { name = "Frappe Split View contributors" },
+  { name = "Split View contributors" },
 ]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
@@ -22,7 +22,7 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/aXeTech-NL/frappe-split-view"
-Documentation = "https://github.com/aXeTech-NL/frappe-split-view/tree/main/docs"
+Documentation = "https://github.com/aXeTech-NL/frappe-split-view/tree/version-16/docs"
 Issues = "https://github.com/aXeTech-NL/frappe-split-view/issues"
 
 [tool.bench.frappe-dependencies]

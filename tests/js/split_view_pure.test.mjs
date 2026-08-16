@@ -8,6 +8,7 @@ import {
   clampListWidth,
   isNarrowViewport,
   isPrimaryActivation,
+  splitViewEligibilityReason,
   unsupportedMetaReason,
 } from "../../frappe_split_view/public/js/split_view/split_view_state.js";
 import {
@@ -16,10 +17,14 @@ import {
   isDeskNavigation,
   shouldCaptureFormLink,
 } from "../../frappe_split_view/public/js/split_view/split_view_router.js";
+import { normalizeEmbeddedDocumentTitle } from "../../frappe_split_view/public/js/split_view/split_form_adapter.js";
 import {
+  appendSplitDefaultViewOption,
   compatibilityStatus,
   installRouteCompatibility,
+  installSelectorCompatibility,
   routeArgumentsToPath,
+  supportsSplitDefaultView,
 } from "../../frappe_split_view/public/js/split_view/compatibility.js";
 
 const locationObject = {
@@ -49,6 +54,26 @@ test("unsupported metadata decisions fail closed", () => {
   assert.equal(unsupportedMetaReason({ istable: 1 }), "table");
   assert.equal(unsupportedMetaReason({}, { isSingle: true }), "single");
   assert.equal(unsupportedMetaReason({}, {}), null);
+  const frappeObject = {
+    get_meta: () => ({}),
+    treeview_settings: {},
+    router: {},
+    model: { is_single: () => false, with_doc() {} },
+    ui: { form: { Form: class {} } },
+    after_ajax() {},
+  };
+  assert.equal(splitViewEligibilityReason(frappeObject, "ToDo"), null);
+  frappeObject.router.doctype_layout = "custom-layout";
+  assert.equal(
+    splitViewEligibilityReason(frappeObject, "ToDo"),
+    "custom-layout",
+  );
+  delete frappeObject.router.doctype_layout;
+  delete frappeObject.ui.form.Form;
+  assert.equal(
+    splitViewEligibilityReason(frappeObject, "ToDo"),
+    "unavailable-api",
+  );
 });
 
 test("only ordinary primary activation is intercepted", () => {
@@ -143,7 +168,10 @@ test("canonical hard-boundary helpers", () => {
   const desk = anchor("https://example.test/desk/todo/ABC");
   assert.equal(isDeskNavigation(desk, locationObject), true);
   assert.equal(
-    isDeskNavigation(anchor("https://example.test/desk/todo/view/split#menu"), locationObject),
+    isDeskNavigation(
+      anchor("https://example.test/desk/todo/view/split#menu"),
+      locationObject,
+    ),
     false,
   );
   assert.equal(isDeskNavigation(anchor("#"), locationObject), false);
@@ -191,11 +219,8 @@ test("route compatibility wrapper is active-owner-only and idempotent", async ()
     open: (...args) => openedTabs.push(args),
   };
   assert.equal(
-    installRouteCompatibility(
-      frappeObject,
-      () => activeOwner,
-      browserWindow,
-    ).valid,
+    installRouteCompatibility(frappeObject, () => activeOwner, browserWindow)
+      .valid,
     true,
   );
   const wrapped = router.set_route;
@@ -239,9 +264,22 @@ test("route compatibility wrapper is active-owner-only and idempotent", async ()
   assert.equal(frappeObject.open_in_new_tab, false);
 });
 
-test("compatibility gate fails closed", () => {
-  assert.equal(compatibilityStatus({}).valid, false);
+function compatibleFrappe(overrides = {}) {
   const frappeObject = {
+    get_meta: () => ({}),
+    treeview_settings: {},
+    after_ajax() {},
+    ui: { form: { Form: class {} } },
+    model: {
+      is_single: () => false,
+      with_doc() {},
+      set_default_views_for_doctype(doctype, frm) {
+        return frm.set_df_property("default_view", "options", [
+          "List",
+          "Report",
+        ]);
+      },
+    },
     views: {
       BaseList: class {},
       ListView: class {},
@@ -256,9 +294,164 @@ test("compatibility gate fails closed", () => {
       convert_from_standard_route() {},
       make_url() {},
     },
+    ...overrides,
   };
   frappeObject.views.BaseList.prototype.setup_main_section = () => {};
   frappeObject.views.ListViewSelect.prototype.setup_views = () => {};
   frappeObject.views.ListViewSelect.prototype.add_view_to_menu = () => {};
+  return frappeObject;
+}
+
+test("compatibility gate fails closed", () => {
+  assert.equal(compatibilityStatus({}).valid, false);
+  const frappeObject = compatibleFrappe();
   assert.equal(compatibilityStatus(frappeObject).valid, true);
+  delete frappeObject.model.set_default_views_for_doctype;
+  assert.equal(compatibilityStatus(frappeObject).valid, false);
+  assert.deepEqual(frappeObject.views.view_modes, ["List"]);
+});
+
+test("embedded document title replaces host breadcrumbs with plain text", () => {
+  const elements = [];
+  const ownerDocument = {
+    createElement(tagName) {
+      const element = {
+        tagName,
+        className: "",
+        dataset: {},
+        attributes: {},
+        setAttribute(name, value) {
+          this.attributes[name] = value;
+        },
+        append(child) {
+          this.child = child;
+        },
+      };
+      elements.push(element);
+      return element;
+    },
+  };
+  let replacement;
+  const host = {
+    ownerDocument,
+    querySelectorAll: () => [
+      {
+        replaceChildren(item) {
+          replacement = item;
+        },
+      },
+    ],
+  };
+  assert.equal(
+    normalizeEmbeddedDocumentTitle(host, "Selected <Project>"),
+    true,
+  );
+  assert.equal(replacement.tagName, "li");
+  assert.equal(replacement.child.textContent, "Selected <Project>");
+  assert.equal(replacement.child.dataset.splitDocumentTitle, "");
+  assert.equal(replacement.child.attributes["aria-current"], "page");
+  assert.equal(elements.length, 2);
+  assert.equal(normalizeEmbeddedDocumentTitle(host, ""), false);
+});
+
+test("default view option helpers preserve stock options and exclusions", () => {
+  const stock = ["List", "Report"];
+  assert.deepEqual(appendSplitDefaultViewOption(stock), [
+    "List",
+    "Report",
+    "Split",
+  ]);
+  assert.deepEqual(stock, ["List", "Report"]);
+  assert.deepEqual(appendSplitDefaultViewOption(["List", "Split"]), [
+    "List",
+    "Split",
+  ]);
+  assert.equal(
+    appendSplitDefaultViewOption("List\nReport"),
+    "List\nReport\nSplit",
+  );
+  assert.equal(appendSplitDefaultViewOption("List\nSplit"), "List\nSplit");
+  assert.equal(appendSplitDefaultViewOption(null), null);
+
+  const frappeObject = compatibleFrappe();
+  assert.equal(supportsSplitDefaultView(frappeObject, "ToDo"), true);
+  assert.equal(supportsSplitDefaultView(frappeObject, "File"), false);
+  frappeObject.get_meta = () => ({ istable: 1 });
+  assert.equal(supportsSplitDefaultView(frappeObject, "Child Row"), false);
+  frappeObject.get_meta = () => ({ is_tree: 1 });
+  assert.equal(supportsSplitDefaultView(frappeObject, "Account"), false);
+  frappeObject.get_meta = () => ({});
+  frappeObject.model.is_single = () => true;
+  assert.equal(
+    supportsSplitDefaultView(frappeObject, "System Settings"),
+    false,
+  );
+});
+
+test("selector compatibility adds Split once to normal DocType default views", () => {
+  const frappeObject = compatibleFrappe();
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+  const wrapped = frappeObject.model.set_default_views_for_doctype;
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+  assert.equal(frappeObject.model.set_default_views_for_doctype, wrapped);
+
+  let captured;
+  const frm = {
+    set_df_property(fieldname, property, options) {
+      captured = { fieldname, property, options };
+      return "native-result";
+    },
+  };
+  assert.equal(
+    frappeObject.model.set_default_views_for_doctype("ToDo", frm),
+    "native-result",
+  );
+  assert.deepEqual(captured, {
+    fieldname: "default_view",
+    property: "options",
+    options: ["List", "Report", "Split"],
+  });
+  frappeObject.model.set_default_views_for_doctype("ToDo", frm);
+  assert.deepEqual(captured.options, ["List", "Report", "Split"]);
+  assert.deepEqual(frappeObject.views.view_modes, ["List", "Split"]);
+  assert.deepEqual(frappeObject.router.list_views, ["list", "split"]);
+  assert.equal(frappeObject.router.list_views_route.split, "Split");
+
+  frappeObject.model.set_default_views_for_doctype("File", frm);
+  assert.deepEqual(captured.options, ["List", "Report"]);
+});
+
+test("default view eligibility remains invocation-scoped across async callbacks", () => {
+  const frappeObject = compatibleFrappe();
+  const pending = [];
+  frappeObject.get_meta = (doctype) =>
+    doctype === "Child Row" ? { istable: 1 } : {};
+  frappeObject.model.set_default_views_for_doctype = (doctype, frm) => {
+    pending.push({
+      doctype,
+      run: () => frm.set_df_property("default_view", "options", ["List"]),
+    });
+    return doctype;
+  };
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+
+  const captured = [];
+  const nativeSetDfProperty = function (fieldname, property, options) {
+    captured.push({ fieldname, property, options });
+  };
+  const frm = { set_df_property: nativeSetDfProperty };
+  assert.equal(
+    frappeObject.model.set_default_views_for_doctype("ToDo", frm),
+    "ToDo",
+  );
+  assert.equal(
+    frappeObject.model.set_default_views_for_doctype("Child Row", frm),
+    "Child Row",
+  );
+  assert.equal(frm.set_df_property, nativeSetDfProperty);
+
+  pending.find(({ doctype }) => doctype === "Child Row").run();
+  pending.find(({ doctype }) => doctype === "ToDo").run();
+  assert.deepEqual(captured[0].options, ["List"]);
+  assert.deepEqual(captured[1].options, ["List", "Split"]);
 });

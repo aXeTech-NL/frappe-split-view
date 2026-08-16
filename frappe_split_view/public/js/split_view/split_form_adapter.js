@@ -4,7 +4,7 @@ import {
   hardNavigateToForm,
   shouldCaptureFormLink,
 } from "./split_view_router.js";
-import { unsupportedMetaReason } from "./split_view_state.js";
+import { splitViewEligibilityReason } from "./split_view_state.js";
 
 const OWNER_KEY = "__frappe_split_view_form_owner";
 const RENDER_TIMEOUT_MS = 15000;
@@ -41,6 +41,28 @@ function restoreAttribute(element, name, snapshot) {
   else element.removeAttribute(name);
 }
 
+export function normalizeEmbeddedDocumentTitle(host, documentTitle) {
+  if (!host?.querySelectorAll) return false;
+  const ownerDocument = host.ownerDocument || globalThis.document;
+  if (!ownerDocument?.createElement) return false;
+  const title = String(documentTitle || "").trim();
+  if (!title) return false;
+  let normalized = false;
+  for (const breadcrumbs of host.querySelectorAll(".navbar-breadcrumbs")) {
+    const item = ownerDocument.createElement("li");
+    item.className = "disabled";
+    const label = ownerDocument.createElement("span");
+    label.className = "title-text-form";
+    label.dataset.splitDocumentTitle = "";
+    label.setAttribute("aria-current", "page");
+    label.textContent = title;
+    item.append(label);
+    breadcrumbs.replaceChildren(item);
+    normalized = true;
+  }
+  return normalized;
+}
+
 export class SplitFormAdapter {
   constructor({ doctype, host, listView, onSelection }) {
     this.doctype = doctype;
@@ -58,13 +80,7 @@ export class SplitFormAdapter {
   }
 
   isSupported() {
-    const meta = frappe.get_meta?.(this.doctype);
-    const reason = unsupportedMetaReason(meta, {
-      hasTreeSettings: Boolean(frappe.treeview_settings?.[this.doctype]),
-      isSingle: Boolean(frappe.model?.is_single?.(this.doctype)),
-      hasCustomLayout: Boolean(frappe.router?.doctype_layout),
-      isSpecial: this.doctype === "File",
-    });
+    const reason = splitViewEligibilityReason(frappe, this.doctype);
     const messages = {
       "missing-meta": __("DocType metadata is unavailable."),
       table: __("Table DocTypes are not supported."),
@@ -72,18 +88,9 @@ export class SplitFormAdapter {
       single: __("Single DocTypes are not supported."),
       "custom-layout": __("Custom DocType layouts are not supported."),
       special: __("Special Form controllers are not supported."),
+      "unavailable-api": __("The stock Frappe Form APIs are unavailable."),
     };
     if (reason) return { supported: false, reason: messages[reason] };
-    if (
-      typeof frappe.ui?.form?.Form !== "function" ||
-      typeof frappe.model?.with_doc !== "function" ||
-      typeof frappe.after_ajax !== "function"
-    ) {
-      return {
-        supported: false,
-        reason: __("The stock Frappe Form APIs are unavailable."),
-      };
-    }
     return { supported: true, reason: null };
   }
 
@@ -179,7 +186,7 @@ export class SplitFormAdapter {
       if (this.pageVisible) window.cur_frm = this.frm;
       return true;
     } catch (error) {
-      console.error("Frappe Split View could not load the stock Form", error);
+      console.error("Split View could not load the stock Form", error);
       if (generation === this.generation)
         this.renderFallback(
           name,
@@ -216,6 +223,7 @@ export class SplitFormAdapter {
             if (settled) return;
             if (generation !== this.generation)
               throw new Error("Stale Form render generation");
+            this.normalizeDocumentTitle();
             settled = true;
             cleanup();
             resolve();
@@ -249,12 +257,29 @@ export class SplitFormAdapter {
         undefined,
       );
     });
+    $(this.host).on("render_complete.frappe-split-view-title", () =>
+      this.normalizeDocumentTitle(),
+    );
     window[OWNER_KEY] = {
       adapter: this,
       doctype: this.doctype,
       frm: this.frm,
       id: this.debugId,
     };
+  }
+
+  normalizeDocumentTitle() {
+    const doc = this.frm?.doc;
+    let title = doc && frappe.model?.get_doc_title?.(doc);
+    if (!title) title = this.frm?.docname;
+    if (
+      title &&
+      frappe.utils?.is_html?.(title) &&
+      typeof globalThis.strip_html === "function"
+    ) {
+      title = globalThis.strip_html(title);
+    }
+    return normalizeEmbeddedDocumentTitle(this.host, title);
   }
 
   restoreGlobalPageState(action) {
@@ -283,10 +308,11 @@ export class SplitFormAdapter {
     try {
       await this.frm.save();
     } catch (error) {
-      console.error("Frappe Split View Form save failed", error);
+      console.error("Split View Form save failed", error);
       return false;
     }
     if (this.isDirty()) return false;
+    this.normalizeDocumentTitle();
     await this.listView.refresh?.();
     return true;
   }

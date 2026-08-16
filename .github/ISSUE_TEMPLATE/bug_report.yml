@@ -18,7 +18,7 @@ body:
   - type: input
     id: app-version
     attributes:
-      label: Frappe Split View version
+      label: Split View version
       placeholder: v0.x.y or commit SHA
     validations:
       required: true

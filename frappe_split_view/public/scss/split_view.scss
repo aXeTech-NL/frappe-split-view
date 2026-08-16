@@ -58,6 +58,16 @@
 		position: static;
 	}
 
+	.split-view-form-host [data-split-document-title] {
+		color: var(--ink-gray-9);
+		display: block;
+		font-size: var(--text-lg);
+		font-weight: var(--weight-medium);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
 	.split-view-form-host .page-body {
 		max-width: none;
 		padding-inline: var(--padding-md);

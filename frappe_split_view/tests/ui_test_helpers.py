@@ -14,7 +14,7 @@ def setup_erpnext_project_poc() -> str:
     if not frappe.db.exists("Warehouse Type", "Transit"):
         frappe.get_doc({"doctype": "Warehouse Type", "name": "Transit"}).insert(ignore_permissions=True)
 
-    company_name = "Frappe Split View POC Company"
+    company_name = "Split View POC Company"
     if not frappe.db.exists("Company", company_name):
         frappe.get_doc(
             {
@@ -29,8 +29,8 @@ def setup_erpnext_project_poc() -> str:
         ).insert(ignore_permissions=True)
 
     for project_name in (
-        "Frappe Split View POC Project One",
-        "Frappe Split View POC Project Two",
+        "Split View POC Project One",
+        "Split View POC Project Two",
     ):
         if not frappe.db.exists("Project", {"project_name": project_name}):
             frappe.get_doc(

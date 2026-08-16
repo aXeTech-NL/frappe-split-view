@@ -1,10 +1,10 @@
-# Frappe Split View — Repository Bootstrap Specification
+# Split View — Repository Bootstrap Specification
 
 **Repository:** `frappe-split-view`
 
 **Frappe app/package:** `frappe_split_view`
 
-**Display name:** Frappe Split View
+**Display name:** Split View
 
 **License:** MIT
 
@@ -66,7 +66,7 @@ Use the following names consistently:
 GitHub repository:    frappe-split-view
 Frappe app name:      frappe_split_view
 Python package:       frappe_split_view
-Display name:         Frappe Split View
+Display name:         Split View
 ```
 
 Do not introduce organization-specific branding into the package name.
@@ -90,7 +90,7 @@ with the standard MIT license text.
 Use a neutral copyright line that can easily be maintained, for example:
 
 ```text
-Copyright (c) 2026 Frappe Split View contributors
+Copyright (c) 2026 Split View contributors
 ```
 
 Do not embed a company name into source headers unless explicitly required later.
@@ -198,9 +198,9 @@ Then move or initialize the resulting app as the `frappe-split-view` Git reposit
 The app metadata should identify:
 
 ```text
-App Title: Frappe Split View
+App Title: Split View
 App Description: A generic master-detail Split View for Frappe Desk.
-App Publisher: Frappe Split View contributors
+App Publisher: Split View contributors
 App Email: use a project-maintainer address only when known
 App License: MIT
 ```
@@ -281,7 +281,7 @@ Do not tie the app's major version directly to the Frappe major version.
 For example:
 
 ```text
-Frappe Split View 1.4.2
+Split View 1.4.2
 compatible with Frappe >=16,<17
 ```
 
@@ -307,7 +307,7 @@ Use the leading `v` in GitHub tags and releases.
 Example:
 
 ```bash
-git tag -a v0.1.0 -m "Frappe Split View v0.1.0"
+git tag -a v0.1.0 -m "Split View v0.1.0"
 git push origin v0.1.0
 ```
 
@@ -383,7 +383,7 @@ Every tagged public version should have a GitHub Release.
 Release title format:
 
 ```text
-Frappe Split View v0.1.0
+Split View v0.1.0
 ```
 
 Release notes must contain:
@@ -613,7 +613,7 @@ Create structured issue forms.
 Require:
 
 - Frappe version;
-- Frappe Split View version;
+- Split View version;
 - browser;
 - DocType;
 - steps to reproduce;
@@ -757,9 +757,9 @@ The README should eventually contain:
 Suggested opening:
 
 ```markdown
-# Frappe Split View
+# Split View
 
-Frappe Split View adds a generic master-detail view to Frappe Desk. Browse records in a list on the left while opening and working with the selected document on the right.
+Split View adds a generic master-detail view to Frappe Desk. Browse records in a list on the left while opening and working with the selected document on the right.
 ```
 
 Do not call the project production-ready before `1.0.0`.
@@ -1239,8 +1239,8 @@ Only do this if the test matrix validates both.
 Example:
 
 ```text
-version-16 -> Frappe Split View 1.x
-main       -> Frappe Split View 2.x for Frappe 17
+version-16 -> Split View 16.x for Frappe 16
+main       -> future development
 ```
 
 Use this only if framework changes make dual compatibility too costly.

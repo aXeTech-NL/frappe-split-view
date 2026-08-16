@@ -1,1 +1,1 @@
-Frappe Split View
+Split View

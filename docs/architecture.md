@@ -1,6 +1,6 @@
 # Architecture
 
-## `0.1.0-alpha.1` boundary
+## `16.0.0` boundary
 
 This is a sharply bounded technical POC, not an embeddable Form API or production support claim. The
 implementation was designed from source inspection of Frappe
@@ -10,9 +10,10 @@ implementation was designed from source inspection of Frappe
 ## Modules
 
 - `split_view_registry.js` registers `frappe.views.SplitView` after feature detection.
-- `compatibility.js` owns the pinned v16 selector/router mutations. It adds Split to view modes and
-  router maps, and temporarily removes Split while native `ListViewSelect.setup_views()` evaluates its
-  closed local mode map. A failed probe leaves native List/Form behavior unchanged.
+- `compatibility.js` owns the pinned v16 selector/router/default-view mutations. It adds Split to view
+  modes and router maps, decorates Frappe's Default View option setup for supported DocTypes, and
+  temporarily removes Split while native `ListViewSelect.setup_views()` evaluates its closed local
+  mode map. A failed probe leaves native List/Form behavior unchanged.
 - `split_view.js` extends stock `frappe.views.ListView`, so `ListFactory`, `BaseList`, list controls,
   filters, and refresh remain standard. It moves the existing `.frappe-list` node into an app-owned
   grid and adds the detail host; it does not construct a second list.
@@ -32,7 +33,8 @@ The explicit global debug/ownership record is `window.__frappe_split_view_form_o
 visible through `window.frappe_split_view.debug.owner`. Construction is refused if an owner already
 exists. One Form object switches existing records; generation tokens prevent stale `with_doc`
 responses replacing a newer selection. The adapter binds `render_complete` before `Form.refresh()`,
-waits for `frappe.after_ajax`, and commits selection only within a bounded current generation.
+waits for `frappe.after_ajax`, reduces the embedded Form breadcrumb to its stock current-document
+label, and commits selection only within a bounded current generation.
 
 `Form.refresh()` lazily creates a `frappe.ui.Page`, which overwrites the current
 `frappe.ui.pages[frappe.get_route_str()]` entry and can change body `data-sidebar`. The adapter

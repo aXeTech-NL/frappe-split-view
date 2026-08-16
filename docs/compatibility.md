@@ -2,10 +2,10 @@
 
 | App version | Declared Frappe version | Exact inspected reference | Status |
 | --- | --- | --- | --- |
-| `0.1.0-alpha.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
+| `16.0.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 
 The metadata range controls Bench installation intent; it is not a generic v16 runtime claim. The
-selector, router maps, ListView activation seam, Form constructor, page cache, and global lifecycle
+selector, router maps, per-DocType Default View option helper, ListView activation seam, Form constructor, page cache, and global lifecycle
 were inspected at the exact Frappe commit above. PR #6 passed the required pinned browser jobs before
 release; this evidence remains limited to the recorded references and POC scenarios.
 
@@ -26,7 +26,8 @@ Project spec is evidence for that environment only, not general ERPNext compatib
 - one embedded Form owner and one DocType in each JavaScript session;
 - stock ListView stays mounted;
 - explicit standard Form save and repeated existing-record switching;
-- hard full-page boundary on app-controlled escape paths.
+- hard full-page boundary on app-controlled escape paths;
+- Split selectable as the standard Default View for each supported DocType.
 
 ## Not supported or asserted
 
