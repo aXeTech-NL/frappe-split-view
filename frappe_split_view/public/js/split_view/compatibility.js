@@ -115,6 +115,12 @@ export function routeArgumentsToPath(router, args) {
   }
 }
 
+export function encodeRouteOption(value) {
+  const serialized =
+    typeof value === "string" ? value : JSON.stringify(value);
+  return encodeURIComponent(serialized);
+}
+
 export function installRouteCompatibility(
   frappeObject,
   getActiveOwner,
@@ -162,7 +168,7 @@ export function installRouteCompatibility(
       const query = Object.entries(routeOptions)
         .map(
           ([key, value]) =>
-            `${encodeURIComponent(key)}=${encodeURIComponent(JSON.stringify(value))}`,
+            `${encodeURIComponent(key)}=${encodeRouteOption(value)}`,
         )
         .join("&");
       if (query) path += `${path.includes("?") ? "&" : "?"}${query}`;

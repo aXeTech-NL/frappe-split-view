@@ -21,6 +21,7 @@ import { normalizeEmbeddedDocumentTitle } from "../../frappe_split_view/public/j
 import {
   appendSplitDefaultViewOption,
   compatibilityStatus,
+  encodeRouteOption,
   installRouteCompatibility,
   installSelectorCompatibility,
   routeArgumentsToPath,
@@ -177,6 +178,15 @@ test("canonical hard-boundary helpers", () => {
   assert.equal(isDeskNavigation(anchor("#"), locationObject), false);
 });
 
+test("route option encoding keeps scalar filters raw and structured filters JSON", () => {
+  assert.equal(encodeRouteOption("Open"), "Open");
+  assert.equal(encodeRouteOption("User Name"), "User%20Name");
+  assert.equal(
+    encodeRouteOption(["in", ["Open", "Closed"]]),
+    "%5B%22in%22%2C%5B%22Open%22%2C%22Closed%22%5D%5D",
+  );
+});
+
 test("route conversion uses the stock router helper sequence", () => {
   const calls = [];
   const router = {
@@ -210,7 +220,10 @@ test("route compatibility wrapper is active-owner-only and idempotent", async ()
   const frappeObject = {
     router,
     route_flags: { test: true },
-    route_options: { status: "Open" },
+    route_options: {
+      status: "Open",
+      priority: ["in", ["High", "Low"]],
+    },
     route_hash: "#section",
   };
   const openedTabs = [];
@@ -239,7 +252,10 @@ test("route compatibility wrapper is active-owner-only and idempotent", async ()
     },
   };
   assert.equal(await router.set_route("Form", "ToDo", "ABC"), true);
-  assert.equal(delegatedPath, "/desk/Form/ToDo/ABC?status=%22Open%22#section");
+  assert.equal(
+    delegatedPath,
+    "/desk/Form/ToDo/ABC?status=Open&priority=%5B%22in%22%2C%5B%22High%22%2C%22Low%22%5D%5D#section",
+  );
   assert.equal(nativeCalls, 1);
   assert.deepEqual(frappeObject.route_flags, {});
   assert.equal(frappeObject.route_options, null);

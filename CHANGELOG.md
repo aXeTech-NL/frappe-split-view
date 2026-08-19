@@ -12,6 +12,36 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Fixed
 
+## [16.0.1] - 2026-08-19
+
+### Highlights
+
+- Linked-document filters now survive hard navigation from an embedded Split View form.
+
+### Added
+
+- Pure JavaScript coverage for scalar and structured route-option encoding.
+
+### Changed
+
+- Scalar route options are written to hard-navigation query strings as plain values, while arrays
+  and objects retain their JSON representation.
+
+### Fixed
+
+- Prevented scalar link filters from gaining literal quotation marks, which caused intermittent
+  filter mismatches depending on whether navigation started from Split View or a full-page form.
+
+### Compatibility
+
+- Keeps the same experimental Frappe `>=16.0.0,<17.0.0` compatibility range and exact inspected
+  Frappe `v16.31.0` reference as `16.0.0`.
+
+### Upgrade notes
+
+- Run `bench update --apps frappe_split_view` or fetch the new immutable release, then execute
+  `bench build --app frappe_split_view` and restart Desk processes.
+
 ## [16.0.0] - 2026-08-12
 
 ### Added
