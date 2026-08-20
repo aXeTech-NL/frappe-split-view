@@ -53,6 +53,7 @@ test("bounded divider state", () => {
 test("unsupported metadata decisions fail closed", () => {
   assert.equal(unsupportedMetaReason(null), "missing-meta");
   assert.equal(unsupportedMetaReason({ istable: 1 }), "table");
+  assert.equal(unsupportedMetaReason({ is_tree: 1 }), null);
   assert.equal(unsupportedMetaReason({}, { isSingle: true }), "single");
   assert.equal(unsupportedMetaReason({}, {}), null);
   const frappeObject = {
@@ -395,8 +396,10 @@ test("default view option helpers preserve stock options and exclusions", () => 
   frappeObject.get_meta = () => ({ istable: 1 });
   assert.equal(supportsSplitDefaultView(frappeObject, "Child Row"), false);
   frappeObject.get_meta = () => ({ is_tree: 1 });
-  assert.equal(supportsSplitDefaultView(frappeObject, "Account"), false);
+  assert.equal(supportsSplitDefaultView(frappeObject, "Account"), true);
   frappeObject.get_meta = () => ({});
+  frappeObject.treeview_settings.Account = {};
+  assert.equal(supportsSplitDefaultView(frappeObject, "Account"), true);
   frappeObject.model.is_single = () => true;
   assert.equal(
     supportsSplitDefaultView(frappeObject, "System Settings"),
@@ -428,6 +431,9 @@ test("selector compatibility adds Split once to normal DocType default views", (
     options: ["List", "Report", "Split"],
   });
   frappeObject.model.set_default_views_for_doctype("ToDo", frm);
+  assert.deepEqual(captured.options, ["List", "Report", "Split"]);
+  frappeObject.get_meta = () => ({ is_tree: 1 });
+  frappeObject.model.set_default_views_for_doctype("Account", frm);
   assert.deepEqual(captured.options, ["List", "Report", "Split"]);
   assert.deepEqual(frappeObject.views.view_modes, ["List", "Split"]);
   assert.deepEqual(frappeObject.router.list_views, ["list", "split"]);

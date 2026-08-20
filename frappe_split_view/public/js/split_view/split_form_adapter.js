@@ -84,7 +84,6 @@ export class SplitFormAdapter {
     const messages = {
       "missing-meta": __("DocType metadata is unavailable."),
       table: __("Table DocTypes are not supported."),
-      tree: __("Tree DocTypes are not supported."),
       single: __("Single DocTypes are not supported."),
       "custom-layout": __("Custom DocType layouts are not supported."),
       special: __("Special Form controllers are not supported."),

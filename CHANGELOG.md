@@ -8,7 +8,11 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Added
 
+- Tree-backed DocTypes can select Split as their default while retaining the separate native Tree view.
+
 ### Changed
+
+- Split eligibility now treats Tree metadata as compatible with the stock ListView-backed split layout.
 
 ### Fixed
 

@@ -65,9 +65,11 @@ and keyboard arrows are supported; only bounded per-DocType divider width is sto
 
 ## Fail-safe eligibility
 
-Single, tree, table, missing-meta, custom-layout, and unavailable-API cases render an explanatory
-fallback with hard full-page navigation. File/special/custom controllers and arbitrary client scripts
-are not asserted compatible. File is not advertised in the selector and its stock ListFactory special-view fallback remains native.
+Single, table, missing-meta, custom-layout, and unavailable-API cases render an explanatory fallback
+with hard full-page navigation. Tree-backed DocTypes are eligible because Split mounts their stock
+ListView; their native Tree route and custom Tree controller remain separate and unchanged.
+File/special/custom controllers and arbitrary client scripts are not asserted compatible. File is not
+advertised in the selector and its stock ListFactory special-view fallback remains native.
 If selector/router feature detection fails, registration stops without changing native modes or routing.
 
 ## Explicitly unsupported

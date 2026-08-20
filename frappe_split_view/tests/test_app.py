@@ -16,6 +16,11 @@ class TestAppInstallation(unittest.TestCase):
     def test_uninstall_cleanup_removes_split_default_view(self):
         from frappe_split_view.uninstall import reset_split_default_views
 
+        existing_split_defaults = frappe.get_all(
+            "DocType",
+            filters={"default_view": "Split"},
+            pluck="name",
+        )
         setter = frappe.get_doc(
             {
                 "doctype": "Property Setter",
@@ -41,4 +46,13 @@ class TestAppInstallation(unittest.TestCase):
                     ignore_permissions=True,
                     force=True,
                 )
+            for doctype in existing_split_defaults:
+                frappe.db.set_value(
+                    "DocType",
+                    doctype,
+                    "default_view",
+                    "Split",
+                    update_modified=False,
+                )
+                frappe.clear_cache(doctype=doctype)
             frappe.clear_cache(doctype="ToDo")

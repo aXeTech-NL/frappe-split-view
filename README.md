@@ -16,7 +16,7 @@ stock `frappe.ui.form.Form` for existing records of one DocType on the right.
 - Primary record activation loads an existing record into a real stock Form without FormFactory or
   `frappe.container.change_to`.
 - The same Form object switches records, shows only the current document title, and keeps standard Save available.
-- **Split** can be selected as the Default View for each supported DocType through standard Frappe configuration.
+- **Split** can be selected as the Default View for each supported DocType through standard Frappe configuration, including tree-backed DocTypes that also expose a stock ListView.
 - Dirty record switching, close, and all `frappe.set_route`-driven navigation are blocked.
 - Full-page, narrow-screen, Form-link, and active-owner `frappe.set_route` transitions use a hard
   browser navigation so a second Form is not created in the same JavaScript session.
@@ -54,8 +54,9 @@ app and module name is **Split View**.
 
 ## Known limitations
 
-Only existing ordinary, non-Single, non-tree, non-table DocTypes without a custom DocType Layout are
-in scope. Unsupported metadata receives an explanatory fallback and a hard full-page action.
+Only existing ordinary, non-Single, non-table DocTypes without a custom DocType Layout are in scope.
+Tree-backed DocTypes use their stock ListView inside Split; their separate native Tree view remains unchanged.
+Unsupported metadata receives an explanatory fallback and a hard full-page action.
 
 This alpha does **not** claim complete browser Back/Forward/refresh restoration, normal Form-route
 semantics, multiple DocTypes per JavaScript session, teardown safety, realtime conflict parity,
