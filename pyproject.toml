@@ -5,7 +5,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "frappe_split_view"
-version = "16.0.1"
+version = "16.1.0"
 description = "A generic master-detail Split View for Frappe Desk."
 readme = "README.md"
 requires-python = ">=3.14"
