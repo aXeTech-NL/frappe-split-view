@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import unittest
+from unittest.mock import patch
 
 try:
     import frappe
@@ -26,10 +27,23 @@ class TestAppInstallation(unittest.TestCase):
                 "value": "Split",
             }
         ).insert(ignore_permissions=True)
+        native_get_all = frappe.get_all
+
+        def cleanup_scope(doctype, *args, **kwargs):
+            if doctype == "DocType" and kwargs.get("filters") == {"default_view": "Split"}:
+                return ["ToDo"]
+            if doctype == "Property Setter" and kwargs.get("filters") == {
+                "property": "default_view",
+                "value": "Split",
+            }:
+                return [frappe._dict(name=setter.name, doc_type="ToDo")]
+            return native_get_all(doctype, *args, **kwargs)
+
         try:
             frappe.clear_cache(doctype="ToDo")
             self.assertEqual(frappe.get_meta("ToDo").default_view, "Split")
-            reset_split_default_views()
+            with patch("frappe_split_view.uninstall.frappe.get_all", side_effect=cleanup_scope):
+                reset_split_default_views()
             self.assertFalse(frappe.db.exists("Property Setter", setter.name))
             frappe.clear_cache(doctype="ToDo")
             self.assertNotEqual(frappe.get_meta("ToDo").default_view, "Split")

@@ -2,6 +2,7 @@
 """Release-PoC fixtures used only by the optional ERPNext browser CI job."""
 
 import frappe
+from frappe.utils.nestedset import get_root_of
 
 
 def setup_erpnext_project_poc() -> str:
@@ -27,6 +28,36 @@ def setup_erpnext_project_poc() -> str:
                 "chart_of_accounts": "Standard",
             }
         ).insert(ignore_permissions=True)
+
+    department_name = "Split View POC Department"
+    department_root = get_root_of("Department")
+    if not department_root:
+        department_root = frappe.get_doc(
+            {
+                "doctype": "Department",
+                "department_name": "All Split View Departments",
+                "company": company_name,
+                "is_group": 1,
+            }
+        ).insert(ignore_permissions=True)
+        department_root = department_root.name
+    if not frappe.db.exists("Department", {"department_name": department_name}):
+        frappe.get_doc(
+            {
+                "doctype": "Department",
+                "department_name": department_name,
+                "parent_department": department_root,
+                "company": company_name,
+            }
+        ).insert(ignore_permissions=True)
+    frappe.db.set_value(
+        "DocType",
+        "Department",
+        "default_view",
+        "Split",
+        update_modified=False,
+    )
+    frappe.clear_cache(doctype="Department")
 
     for project_name in (
         "Split View POC Project One",

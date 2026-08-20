@@ -28,7 +28,6 @@ export function isNarrowViewport(width) {
 export function unsupportedMetaReason(meta, options = {}) {
   if (!meta) return "missing-meta";
   if (meta.istable) return "table";
-  if (meta.is_tree || options.hasTreeSettings) return "tree";
   if (meta.issingle || options.isSingle) return "single";
   if (options.hasCustomLayout) return "custom-layout";
   if (options.isSpecial) return "special";
@@ -43,7 +42,6 @@ export function splitViewEligibilityReason(frappeObject, doctype) {
     return "missing-meta";
   }
   const metadataReason = unsupportedMetaReason(meta, {
-    hasTreeSettings: Boolean(frappeObject?.treeview_settings?.[doctype]),
     isSingle: Boolean(frappeObject?.model?.is_single?.(doctype)),
     hasCustomLayout: Boolean(frappeObject?.router?.doctype_layout),
     isSpecial: doctype === "File",

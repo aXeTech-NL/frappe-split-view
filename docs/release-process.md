@@ -36,5 +36,5 @@ Every release note includes:
 ## Upgrade notes
 ```
 
-`16.0.0` remains a technical POC. Do not claim production readiness, complete routing/history,
+The `16.x` line remains a technical POC. Do not claim production readiness, complete routing/history,
 generic DocType or ERPNext support, safe teardown, or lifecycle parity.

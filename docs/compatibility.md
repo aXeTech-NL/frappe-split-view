@@ -2,6 +2,7 @@
 
 | App version | Declared Frappe version | Exact inspected reference | Status |
 | --- | --- | --- | --- |
+| `16.1.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 | `16.0.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 | `16.0.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 
@@ -23,7 +24,7 @@ Project spec is evidence for that environment only, not general ERPNext compatib
 
 ## Supported POC envelope
 
-- existing ordinary non-Single, non-tree, non-table DocTypes;
+- existing ordinary non-Single, non-table DocTypes, including tree-backed DocTypes through their stock ListView;
 - one embedded Form owner and one DocType in each JavaScript session;
 - stock ListView stays mounted;
 - explicit standard Form save and repeated existing-record switching;
@@ -37,8 +38,8 @@ Project spec is evidence for that environment only, not general ERPNext compatib
 - custom DocType Layout, Tree, Single, table and special controllers;
 - complete refresh/deep-link/Back/Forward restoration;
 - safe Form teardown, long-session listener stability, canonical realtime conflict parity;
-- arbitrary client scripts, child tables, permissions matrices, mobile embedded layout, or general
-  ERPNext behavior.
+- custom Tree-view controller behavior inside Split, arbitrary client scripts, child tables,
+  permissions matrices, mobile embedded layout, or general ERPNext behavior.
 
 Failures in compatibility probes must leave native List/Form routing intact. Unsupported metadata
 receives a full-page fallback rather than an attempted embedded Form.

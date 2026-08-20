@@ -12,6 +12,36 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Fixed
 
+## [16.1.0] - 2026-08-20
+
+### Highlights
+
+- Tree-backed DocTypes can now use Split as their default without losing Frappe's native Tree view.
+
+### Added
+
+- Split eligibility and Default View support for tree-backed DocTypes through their stock ListView.
+- Regression coverage for Tree metadata and preservation of pre-existing Split defaults during uninstall tests.
+
+### Changed
+
+- Tree metadata no longer triggers the unsupported-form fallback in Split.
+- Compatibility documentation now distinguishes the supported ListView-backed Split route from the separate native Tree controller.
+
+### Fixed
+
+- Prevented the uninstall-cleanup test from leaving unrelated DocTypes reset to List after the test run.
+
+### Compatibility
+
+- Keeps the experimental Frappe `>=16.0.0,<17.0.0` range and exact inspected Frappe `v16.31.0` reference.
+- Runtime-validated with the tree-backed Omexom Project Requirement DocType while retaining its native Tree route.
+
+### Upgrade notes
+
+- Update to the immutable `v16.1.0` tag, then run `bench build --app frappe_split_view`, migrate, and restart Desk processes.
+- Existing tree-backed DocTypes may select Split through standard Default View configuration; their native Tree view remains available.
+
 ## [16.0.1] - 2026-08-19
 
 ### Highlights
