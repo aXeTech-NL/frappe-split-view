@@ -79,6 +79,15 @@ export class SplitView extends frappe.views.ListView {
     });
   }
 
+  set_breadcrumbs() {
+    // On refresh/deep-link entry, the shell is built before with_doc completes.
+    // Native list breadcrumbs would treat the Form route as a loaded document
+    // and dereference null. The Form owns breadcrumbs and registers them later.
+    if (isSplitDocumentRoute(frappe.get_route(), window.location.search))
+      return;
+    return super.set_breadcrumbs();
+  }
+
   before_refresh() {
     // A document's query parameters must never become list filters.
     if (isSplitDocumentRoute(frappe.get_route(), window.location.search))
@@ -269,6 +278,7 @@ export class SplitView extends frappe.views.ListView {
   closeDetail() {
     if (!this.splitFormAdapter.close()) return false;
     this.documentRoute.close();
+    this.set_breadcrumbs();
     this.detailPane.hidden = true;
     this.splitRoot.classList.remove("has-selection");
     if (this.selectedRowLink?.isConnected) this.selectedRowLink.focus();

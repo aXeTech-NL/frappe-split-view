@@ -149,7 +149,12 @@ context("Split View ToDo POC", () => {
       win.cur_list.sort_selector.set_value("description", "asc");
       win.cur_list.on_sort_change("description", "asc");
     });
-    cy.window().should((win) => expect(win.cur_list.data).to.have.length(2));
+    cy.window().should((win) =>
+      expect(win.cur_list.data.map((doc) => doc.name)).to.deep.eq([
+        first,
+        second,
+      ]),
+    );
     cy.window().then(async (win) => {
       list = win.cur_list;
       listNode = list.$frappe_list.get(0);
@@ -197,7 +202,8 @@ context("Split View ToDo POC", () => {
   });
 
   it("restores loaded rows, paging batch and result scroll after reload", () => {
-    const pagingMarker = `${marker}-paging`;
+    // Retries must not pick up the previous attempt's 25 fixture rows.
+    const pagingMarker = `${marker}-paging-${Date.now()}`;
     for (let index = 0; index < 25; index++) {
       cy.insert_doc("ToDo", {
         description: `${pagingMarker}-${index}`,
@@ -213,7 +219,13 @@ context("Split View ToDo POC", () => {
         ["ToDo", "description", "like", `%${pagingMarker}%`],
       ]);
     });
-    cy.get("[data-split-view-list] .btn-paging[data-value='20']").click();
+    cy.get("[data-split-view-list] .btn-paging[data-value='20']").then(
+      ($button) => {
+        // Headless Chrome may already use Frappe's 20-row default. An active
+        // paging button is intentionally disabled; do not force-click it.
+        if (!$button.prop("disabled")) cy.wrap($button).click();
+      },
+    );
     cy.window().should((win) => expect(win.cur_list.data).to.have.length(20));
     cy.get("[data-split-view-list] .btn-more").click();
     cy.window().should((win) => expect(win.cur_list.data).to.have.length(25));

@@ -13,6 +13,12 @@ globalThis.frappe = {
         this.selected_page_count = 100;
         return Promise.resolve();
       }
+      set_breadcrumbs() {
+        nativeCalls.push("breadcrumbs");
+        // Frappe's breadcrumb renderer reads the document on a Form route.
+        // A cold Split shell has not fetched it yet.
+        if (frappe.get_route()[0] === "Form") return frappe.get_doc().name;
+      }
       before_refresh() {
         nativeCalls.push("before_refresh");
         return Promise.resolve();
@@ -75,6 +81,31 @@ test("restore overrides saved/default settings, including intentionally empty fi
     split_view: "1",
     scroll_to: "priority",
   });
+});
+
+test("cold document route leaves breadcrumbs to the Form without reading an unloaded document", () => {
+  const { list } = fixture();
+  frappe.get_doc = () => null;
+  assert.doesNotThrow(() => list.set_breadcrumbs());
+  assert.deepEqual(nativeCalls, []);
+  assert.deepEqual(frappe.get_route(), ["Form", "ToDo", "A"]);
+
+  frappe.get_route = () => ["List", "ToDo", "Split"];
+  list.set_breadcrumbs();
+  assert.deepEqual(nativeCalls, ["breadcrumbs"]);
+});
+
+test("Close restores list breadcrumbs after a document-first entry", () => {
+  const { list } = fixture();
+  list.splitFormAdapter = { close: () => true };
+  list.documentRoute.close = () => {
+    frappe.get_route = () => ["List", "ToDo", "Split"];
+  };
+  list.detailPane = { hidden: false };
+  list.splitRoot = { classList: { remove() {} } };
+  assert.equal(list.closeDetail(), true);
+  assert.equal(list.detailPane.hidden, true);
+  assert.deepEqual(nativeCalls, ["breadcrumbs"]);
 });
 
 test("restored paging control highlights batch size rather than total loaded range", async () => {
