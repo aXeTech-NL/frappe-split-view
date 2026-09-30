@@ -79,6 +79,7 @@ context("Split View ERPNext Project POC", () => {
       expect(owner.frm.docname).to.eq(first);
       win.__projectSplitForm = owner.frm;
     });
+    cy.assert_split_header_layout();
     cy.window().then((win) => win.cur_list.activateRecord(second));
     cy.get("[data-split-form-host] [data-split-document-title]")
       .should("have.length", 1)
@@ -90,6 +91,7 @@ context("Split View ERPNext Project POC", () => {
       expect(win.__projectSplitForm.docname).to.eq(second);
       expect(win.frappe.container.page).to.eq(win.cur_list.parent);
     });
+    cy.assert_split_header_layout();
   });
 
   it("supports default Split for a tree-backed Department and preserves Tree", () => {

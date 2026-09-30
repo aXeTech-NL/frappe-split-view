@@ -321,6 +321,112 @@ function compatibleFrappe(overrides = {}) {
   return frappeObject;
 }
 
+function selectorFixture(t) {
+  const previousTranslate = globalThis.__;
+  globalThis.__ = (text) => `translated:${text}`;
+  t.after(() => {
+    if (previousTranslate === undefined) delete globalThis.__;
+    else globalThis.__ = previousTranslate;
+  });
+  const frappeObject = compatibleFrappe();
+  frappeObject.views.view_modes = ["List", "Report", "Kanban"];
+  const proto = frappeObject.views.ListViewSelect.prototype;
+  proto.setup_views = function () {
+    assert.ok(!frappeObject.views.view_modes.includes("Split"));
+    for (const view of frappeObject.views.view_modes) {
+      if (view !== this.current_view)
+        this.add_view_to_menu(view, () => this.set_route(view.toLowerCase()));
+    }
+  };
+  proto.add_view_to_menu = function (view, action) {
+    this.items.push({ view, label: this.label_map[view] || view, action });
+  };
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+  const patched = proto.setup_views;
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+  assert.equal(proto.setup_views, patched);
+  const labels = {
+    List: "List View",
+    Report: "Report View",
+    Kanban: "Kanban View",
+  };
+
+  function create(viewName, currentView = viewName, doctype = "ToDo") {
+    const selector = Object.assign(Object.create(proto), {
+      doctype,
+      list_view: { view_name: viewName },
+      current_view: currentView,
+      label_map: labels,
+      caption: labels[viewName] || labels.List,
+      captionWrites: 0,
+      items: [],
+      set_route(route) {
+        this.routedTo = route;
+      },
+      parent: {
+        closest(css) {
+          assert.equal(css, ".custom-btn-group");
+          return {
+            find(css) {
+              assert.equal(css, ".custom-btn-group-label");
+              return {
+                text(value) {
+                  selector.caption = value;
+                  selector.captionWrites += 1;
+                },
+              };
+            },
+          };
+        },
+      },
+    });
+    selector.setup_views();
+    return selector;
+  }
+  return { frappeObject, labels, create };
+}
+
+test("Split selector caption follows its owning list, including document-first routes", (t) => {
+  const { frappeObject, labels, create } = selectorFixture(t);
+  // A Form route normally defaults to List, or may contain a document named Report.
+  for (const initialView of ["Split", "List", "Report"]) {
+    const selector = create("Split", initialView);
+    assert.equal(selector.current_view, "Split");
+    assert.equal(selector.caption, "translated:Split View");
+    assert.equal(selector.captionWrites, 1);
+    assert.deepEqual(
+      selector.items.map(({ view }) => view),
+      ["List", "Report", "Kanban"],
+    );
+    selector.items[0].action();
+    assert.equal(selector.routedTo, "list");
+  }
+  assert.equal(labels.Split, undefined, "stock label maps are not mutated");
+  assert.deepEqual(frappeObject.views.view_modes, [
+    "List", "Report", "Kanban", "Split",
+  ]);
+});
+
+test("native selectors retain their captions and offer one translated Split View entry", (t) => {
+  const { create } = selectorFixture(t);
+  for (const view of ["List", "Report", "Kanban"]) {
+    const selector = create(view);
+    assert.equal(selector.current_view, view);
+    assert.equal(selector.caption, `${view} View`);
+    assert.equal(selector.captionWrites, 0);
+    assert.equal(selector.items.some((item) => item.view === view), false);
+    const entries = selector.items.filter((item) => item.view === "Split");
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].label, "translated:Split View");
+    entries[0].action();
+    assert.equal(selector.routedTo, "split");
+  }
+  assert.equal(
+    create("List", "List", "File").items.some((item) => item.view === "Split"),
+    false,
+  );
+});
+
 test("compatibility gate fails closed", () => {
   assert.equal(compatibilityStatus({}).valid, false);
   const frappeObject = compatibleFrappe();

@@ -187,12 +187,9 @@ export class SplitView extends frappe.views.ListView {
     detail.append(header, formHost);
     this.splitRoot.append(listPane, divider, detail);
     main.append(this.splitRoot);
-    // List controls belong to the embedded list, not the document toolbar.
-    listPane.append(
-      this.page.page_head.get(0),
-      this.page.page_form.get(0),
-      this.$frappe_list.get(0),
-    );
+    // Keep the stock list toolbar and filters in their full-width positions
+    // above the split. Only results/paging belong to the left pane.
+    listPane.append(this.$frappe_list.get(0));
     this.detailPane = detail;
     this.formHost = formHost;
     this.splitFormAdapter = new SplitFormAdapter({

@@ -54,7 +54,10 @@ The ToDo smoke asserts selector registration, stable pane attributes, a real
 route/page context, current-document-only title, Default View availability, save persistence through
 REST, dirty switch/close blocking, page hide/show `cur_frm`, and hard full-page boundary. It also
 covers reload restoration of document/filters/order, marked deep links without tab state,
-Back/Forward reload boundaries and Close/reopen. It does not mock Form as runtime proof.
+Back/Forward reload boundaries and Close/reopen. Both ToDo and Project assert full-width list
+header/filter geometry above the panes, with document controls still on the right, and the active
+"Split View" selector caption. ToDo also checks Split/List round trips, a custom header action,
+divider resizing, Close, reload and deep-link entry. It does not mock Form as runtime proof.
 
 Dependency-free route/adapter tests cover compound filters, paging/scroll snapshots, disabled
 storage, dirty history/unload guards, route rollback, serialized activation and pending/queued

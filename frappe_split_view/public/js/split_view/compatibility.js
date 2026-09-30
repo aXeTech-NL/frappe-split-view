@@ -208,7 +208,16 @@ export function installSelectorCompatibility(frappeObject) {
   if (!proto[PATCH_FLAG]) {
     const nativeSetupViews = proto.setup_views;
     proto.setup_views = function splitViewSetupViews() {
-      if (this.list_view?.view_name === "Split") this.current_view = "Split";
+      this.label_map = { ...this.label_map, Split: __("Split View") };
+      if (this.list_view?.view_name === "Split") {
+        this.current_view = "Split";
+        // BaseList's closed label map creates this button as "List View".
+        // Update only this selector's caption, preserving its icons/handlers.
+        this.parent
+          .closest(".custom-btn-group")
+          .find(".custom-btn-group-label")
+          .text(this.label_map.Split);
+      }
       const allModes = views.view_modes;
       // Native setup would dereference views.Split from its closed local map.
       views.view_modes = allModes.filter((mode) => mode !== "Split");
