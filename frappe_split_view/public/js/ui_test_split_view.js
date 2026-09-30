@@ -71,7 +71,20 @@ context("Split View ToDo POC", () => {
       );
       expect(root.dataset.selectedName).to.eq(first);
       win.__splitFormIdentity = owner.frm;
+      win.__splitHeaderActionCount = 0;
+      win.cur_list.page
+        .add_inner_button("Split header test action", () => {
+          win.__splitHeaderActionCount += 1;
+        })
+        .attr("data-split-header-test-action", "");
     });
+    cy.assert_split_header_layout();
+    cy.get("[data-split-header-test-action]").should("be.visible").click();
+    cy.window().then((win) => {
+      expect(win.__splitHeaderActionCount).to.eq(1);
+      win.cur_list.setListWidth(560, false);
+    });
+    cy.assert_split_header_layout();
 
     cy.window().then((win) => win.cur_list.activateRecord(second));
     cy.get("[data-split-form-host] [data-split-document-title]")
@@ -83,6 +96,7 @@ context("Split View ToDo POC", () => {
       );
       expect(win.__splitFormIdentity.docname).to.eq(second);
     });
+    cy.assert_split_header_layout();
 
     cy.intercept("POST", "/api/method/frappe.desk.form.save.savedocs").as(
       "saveTodo",
@@ -131,6 +145,7 @@ context("Split View ToDo POC", () => {
       expect(win.cur_frm).to.eq(null);
       expect(win.cur_list.splitFormAdapter.detailOpen).to.eq(false);
     });
+    cy.assert_split_header_layout();
   });
 
   it("restores the document and embedded list after refresh and history navigation", () => {
@@ -181,6 +196,7 @@ context("Split View ToDo POC", () => {
       expect(win.cur_list.sort_selector.sort_order).to.eq("asc");
       expect(win.cur_list.data.map((doc) => doc.name)).to.deep.eq(names);
     });
+    cy.assert_split_header_layout();
     cy.go("back");
     cy.get(`[data-frappe-split-view][data-selected-name="${first}"]`).should(
       "be.visible",
@@ -274,6 +290,7 @@ context("Split View ToDo POC", () => {
       expect(win.cur_frm.docname).to.eq(first);
       expect(win.frappe.get_route()).to.deep.eq(["Form", "ToDo", first]);
     });
+    cy.assert_split_header_layout();
   });
 
   it("guards dirty set_route calls, then hard-navigates the clean boundary", () => {

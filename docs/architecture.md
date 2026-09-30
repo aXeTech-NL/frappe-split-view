@@ -26,8 +26,9 @@ The entry route remains `/desk/<doctype>/view/split`. Selecting an existing reco
 to `/desk/<doctype>/<name>?split_view=1` and Frappe's route to `Form/<doctype>/<name>` **before**
 Form loading and client hooks. The Form Page owns `frappe.ui.pages[current_route]`, `cur_frm` points
 to that Form, and the browser title and body route identify the document. The existing Split page
-remains the physical Desk container; no second Form or List is constructed. List toolbar/filter
-controls live inside the list pane rather than above the document.
+remains the physical Desk container; no second Form or List is constructed. The stock list toolbar
+and filters keep their native full-width positions above both panes. Only the list results/paging
+move into the left pane; document-specific controls remain inside the right pane.
 
 Opening is serialized. A tentative history replacement is committed as a new entry only after a
 successful render. Failure restores the previous route and, where safe, the previous Form. Close

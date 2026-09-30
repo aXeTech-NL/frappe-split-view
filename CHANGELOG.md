@@ -12,6 +12,39 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Fixed
 
+## [16.2.1] - 2026-09-30
+
+### Highlights
+
+- The list header and filters span the full content width above both Split View panes again.
+
+### Added
+
+- Layout regression coverage for native header/filter placement, custom header actions, resizing,
+  document switches, Close, reload and deep links in the pinned ToDo/Project browser suites.
+
+### Changed
+
+- Only list results and paging move into the left pane; the stock list toolbar and filters stay in
+  their native positions. Document-specific actions remain in the right pane.
+
+### Fixed
+
+- List actions (including custom buttons, saved filters and Add) are no longer squeezed into the
+  left half when a document is open.
+
+### Compatibility
+
+- Remains an experimental Frappe `>=16.0.0,<17.0.0` POC with unchanged routing and dirty guards.
+- Required browser CI pins Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) and
+  ERPNext `v16.32.0` (`81a6f97566b83609c3917404a560b673050e907d`); pending CI is not runtime proof.
+
+### Upgrade notes
+
+- After merge and successful release checks, install the immutable `v16.2.1` tag, build assets,
+  migrate and restart Desk processes. Reload Desk to pick up the layout change.
+- Document URLs, retained list context and unsaved-change protection remain unchanged.
+
 ## [16.2.0] - 2026-09-30
 
 ### Highlights

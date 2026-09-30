@@ -7,13 +7,15 @@ standard v16 view selector, keeps the stock ListView mounted on the left, and mo
 stock `frappe.ui.form.Form` for existing records of one DocType on the right. Opening a record makes
 its Form route and context authoritative; the list becomes the retained navigation pane.
 
-> `16.2.0` remains an experimental technical POC, not a production-readiness or generic
+> `16.2.1` remains an experimental technical POC, not a production-readiness or generic
 > compatibility claim. The major version identifies the compatible Frappe release line.
 
 ## What the POC proves
 
 - `/desk/<doctype>/view/split` is a normal `ListFactory` view.
 - List filters, sort controls, actions, paging, and scroll remain owned by the stock ListView.
+- The list toolbar and filters span the full content width above both panes; only results and
+  the document are split side by side. Document actions stay in the right pane.
 - Primary record activation loads an existing record into a real stock Form without FormFactory or
   `frappe.container.change_to`.
 - The same Form object switches records, shows only the current document title, and keeps standard Save available.
@@ -38,6 +40,7 @@ Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-li
 
 | App version | Declared Frappe range | Inspected reference | Status |
 | --- | --- | --- | --- |
+| `16.2.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.2.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.1.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.0.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
