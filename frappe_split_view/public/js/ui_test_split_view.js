@@ -134,8 +134,11 @@ context("Split View ToDo POC", () => {
     cy.window().then((win) =>
       expect(win.cur_frm).to.eq(win.__splitFormIdentity),
     );
-    // Dismiss the expected dirty-guard message before checking the uncovered
-    // stock header after Close; a modal correctly hides fixed page controls.
+    // Wait for shown.bs.modal before clicking: Bootstrap ignores close while
+    // the modal is transitioning. The guard message must not cover the header.
+    cy.window().should((win) =>
+      expect(win.cur_dialog?.display, "dirty-guard dialog shown").to.eq(true),
+    );
     cy.get(".modal:visible")
       .should("contain", "Unsaved changes")
       .find(".btn-modal-close")

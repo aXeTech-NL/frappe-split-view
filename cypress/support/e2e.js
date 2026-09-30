@@ -30,6 +30,17 @@ Cypress.Commands.add("insert_doc", (doctype, args) => {
 });
 
 Cypress.Commands.add("assert_split_header_layout", () => {
+  // Close restores row focus, which can scroll Desk beneath its fixed header.
+  // Measure the unscrolled layout without changing either list scroll offset.
+  cy.window().then((win) => {
+    for (
+      let parent = win.cur_list.splitRoot.parentElement;
+      parent;
+      parent = parent.parentElement
+    ) {
+      parent.scrollTop = 0;
+    }
+  });
   cy.window().should((win) => {
     const list = win.cur_list;
     const root = list.splitRoot;
