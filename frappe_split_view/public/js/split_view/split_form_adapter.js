@@ -5,6 +5,7 @@ import {
   shouldCaptureFormLink,
 } from "./split_view_router.js";
 import { splitViewEligibilityReason } from "./split_view_state.js";
+import { isSplitDocumentRoute } from "./split_document_route.js";
 
 const OWNER_KEY = "__frappe_split_view_form_owner";
 const RENDER_TIMEOUT_MS = 15000;
@@ -70,6 +71,7 @@ export class SplitFormAdapter {
     this.listView = listView;
     this.onSelection = onSelection;
     this.generation = 0;
+    this.openEpoch = 0;
     this.selectedName = null;
     this.pageVisible = true;
     this.detailOpen = false;
@@ -94,12 +96,13 @@ export class SplitFormAdapter {
   }
 
   isActiveOwner() {
+    const route = frappe.get_route?.();
     return Boolean(
       this.pageVisible &&
-        this.listView?.page?.wrapper?.is?.(":visible") &&
-        frappe.get_route?.()?.[0] === "List" &&
-        frappe.get_route?.()?.[1] === this.doctype &&
-        String(frappe.get_route?.()?.[2] || "").toLowerCase() === "split",
+      this.listView?.page?.wrapper?.is?.(":visible") &&
+      route?.[1] === this.doctype &&
+      ((route[0] === "List" && String(route[2]).toLowerCase() === "split") ||
+        isSplitDocumentRoute(route, window.location.search)),
     );
   }
 
@@ -120,7 +123,7 @@ export class SplitFormAdapter {
       return false;
     }
     // Invalidate any in-flight render before starting the hard page boundary.
-    this.generation += 1;
+    this.cancelPendingOpen();
     window.location.assign(path);
     return true;
   }
@@ -130,17 +133,24 @@ export class SplitFormAdapter {
   }
 
   open(name) {
-    const operation = this.openQueue.then(() => this.openSerial(name));
+    const epoch = this.openEpoch;
+    const operation = this.openQueue.then(() =>
+      epoch === this.openEpoch ? this.openSerial(name) : false,
+    );
     this.openQueue = operation.catch(() => false);
     return operation;
   }
 
   async openSerial(name) {
-    if (this.selectedName === name) {
-      this.detailOpen = true;
-      return true;
-    }
+    if (this.selectedName === name && this.detailOpen) return true;
     if (!this.guardDirty()) return false;
+    if (this.formUnusable) {
+      this.renderFallback(
+        name,
+        __("Reload the page to open another document safely."),
+      );
+      return false;
+    }
 
     const support = this.isSupported();
     if (!support.supported) {
@@ -162,8 +172,11 @@ export class SplitFormAdapter {
     }
 
     const generation = ++this.generation;
+    let previousRoute;
     this.host.classList.add("split-view-detail-loading");
     try {
+      previousRoute = this.listView.documentRoute.begin(name);
+      this.pendingRoute = previousRoute;
       const routeBeforeLoad = frappe.get_route_str();
       await frappe.model.with_doc(this.doctype, name);
       if (generation !== this.generation) return false;
@@ -174,6 +187,11 @@ export class SplitFormAdapter {
       }
       if (!frappe.get_doc?.(this.doctype, name))
         throw new Error("Document was not loaded");
+      // The old Form remains interactive during with_doc's asynchronous fetch.
+      if (!this.guardDirty()) {
+        this.listView.documentRoute.rollback(previousRoute);
+        return false;
+      }
       this.ensureForm();
       await this.refreshAndWait(name, generation);
       if (generation !== this.generation) return false;
@@ -183,16 +201,49 @@ export class SplitFormAdapter {
       this.host.dataset.formInstanceId = this.debugId;
       this.onSelection?.(name);
       if (this.pageVisible) window.cur_frm = this.frm;
+      this.listView.documentRoute.commit(previousRoute);
       return true;
     } catch (error) {
       console.error("Split View could not load the stock Form", error);
-      if (generation === this.generation)
-        this.renderFallback(
-          name,
-          __("The stock Form could not be loaded safely."),
-        );
+      if (generation === this.generation) {
+        this.listView.documentRoute.rollback(previousRoute);
+        if (error.unsafeFormState) {
+          // An unfinished client hook could still mutate the Form. Never start
+          // a competing refresh on that same singleton after a timeout.
+          this.renderFallback(
+            name,
+            __("The stock Form could not be loaded safely."),
+          );
+        } else if (this.selectedName) {
+          // A fetch failure leaves the previous Form intact. A failed refresh
+          // may already have switched frm.doc: restore it before claiming that
+          // the old route/selection is still usable.
+          try {
+            if (this.frm?.docname !== this.selectedName)
+              await this.refreshAndWait(this.selectedName, generation);
+            if (generation === this.generation)
+              frappe.msgprint(
+                __(
+                  "The document could not be opened. The previous selection was kept.",
+                ),
+              );
+          } catch (_) {
+            if (generation === this.generation)
+              this.renderFallback(
+                name,
+                __("The stock Form could not be loaded safely."),
+              );
+          }
+        } else {
+          this.renderFallback(
+            name,
+            __("The stock Form could not be loaded safely."),
+          );
+        }
+      }
       return false;
     } finally {
+      if (this.pendingRoute === previousRoute) this.pendingRoute = null;
       if (generation === this.generation)
         this.host.classList.remove("split-view-detail-loading");
     }
@@ -204,9 +255,13 @@ export class SplitFormAdapter {
       // On the first refresh Form.setup() has not assigned frm.wrapper yet. The parent
       // host is the eventual wrapper and is where Form emits render_complete.
       const wrapper = $(this.host);
+      const nativeRenderTail = this.frm.configure_breadcrumb_width;
+      let renderTail;
       const cleanup = () => {
         clearTimeout(timeout);
         wrapper.off("render_complete.frappe-split-view-open", onRender);
+        if (renderTail && this.frm.configure_breadcrumb_width === renderTail)
+          this.frm.configure_breadcrumb_width = nativeRenderTail;
       };
       const fail = (error) => {
         if (settled) return;
@@ -229,11 +284,27 @@ export class SplitFormAdapter {
           })
           .catch(fail);
       };
-      const timeout = setTimeout(
-        () => fail(new Error("Timed out waiting for stock Form render")),
-        RENDER_TIMEOUT_MS,
-      );
-      wrapper.one("render_complete.frappe-split-view-open", onRender);
+      const timeout = setTimeout(() => {
+        const error = new Error("Timed out waiting for stock Form render");
+        error.unsafeFormState = true;
+        fail(error);
+      }, RENDER_TIMEOUT_MS);
+      if (typeof nativeRenderTail === "function") {
+        // v16 emits render_complete BEFORE its asynchronous refresh hook queue
+        // finishes. This instance-only hook observes the actual last queue step.
+        renderTail = function (...args) {
+          try {
+            const result = nativeRenderTail.apply(this, args);
+            onRender();
+            return result;
+          } catch (error) {
+            fail(error);
+          }
+        };
+        this.frm.configure_breadcrumb_width = renderTail;
+      } else {
+        wrapper.one("render_complete.frappe-split-view-open", onRender);
+      }
       try {
         this.restoreGlobalPageState(() => this.frm.refresh(name));
       } catch (error) {
@@ -278,6 +349,7 @@ export class SplitFormAdapter {
     ) {
       title = globalThis.strip_html(title);
     }
+    if (this.isActiveOwner() && title) frappe.utils.set_title(title);
     return normalizeEmbeddedDocumentTitle(this.host, title);
   }
 
@@ -291,7 +363,12 @@ export class SplitFormAdapter {
     try {
       return action();
     } finally {
-      if (hadPage) pages[routeKey] = pageValue;
+      if (
+        isSplitDocumentRoute(frappe.get_route(), window.location.search) &&
+        this.frm?.page
+      )
+        pages[routeKey] = this.frm.page;
+      else if (hadPage) pages[routeKey] = pageValue;
       else delete pages[routeKey];
       restoreAttribute(document.body, "data-sidebar", sidebar);
       if (frappe.container && frappe.container.page !== containerPage) {
@@ -316,9 +393,17 @@ export class SplitFormAdapter {
     return true;
   }
 
+  cancelPendingOpen() {
+    this.openEpoch += 1;
+    this.listView.documentRoute.rollback(this.pendingRoute);
+    this.pendingRoute = null;
+    this.generation += 1;
+    this.host.classList.remove("split-view-detail-loading");
+  }
+
   close() {
     if (!this.guardDirty()) return false;
-    this.generation += 1;
+    this.cancelPendingOpen();
     this.detailOpen = false;
     if (this.frm) $(this.host).trigger("hide");
     if (window.cur_frm === this.frm) window.cur_frm = null;
@@ -342,7 +427,7 @@ export class SplitFormAdapter {
 
   hardNavigateToForm(name) {
     if (!name || !this.guardDirty()) return false;
-    this.generation += 1;
+    this.cancelPendingOpen();
     return hardNavigateToForm(frappe, this.doctype, name);
   }
 
@@ -351,6 +436,9 @@ export class SplitFormAdapter {
   }
 
   renderFallback(name, reason) {
+    // A Form whose host was replaced cannot safely be refreshed again.
+    this.formUnusable = Boolean(this.frm);
+    if (window.cur_frm === this.frm) window.cur_frm = null;
     this.selectedName = null;
     this.detailOpen = true;
     this.host.replaceChildren();
@@ -378,7 +466,7 @@ export class SplitFormAdapter {
         event.stopImmediatePropagation();
         if (!this.guardDirty()) return;
         // A hard boundary prevents FormFactory constructing a second live Form.
-        this.generation += 1;
+        this.cancelPendingOpen();
         window.location.assign(anchor.href);
       },
       true,
@@ -392,9 +480,13 @@ export function getEmbeddedFormOwner() {
 
 export function getActiveEmbeddedFormOwner() {
   const owner = getEmbeddedFormOwner();
-  if (!owner?.adapter?.isActiveOwner?.()) return null;
+  const pending = window.cur_list?.splitFormAdapter;
+  // Navigation during the first fetch also needs a hard boundary, before the
+  // singleton Form owner exists. Otherwise its response can reclaim a new page.
+  const adapter = pending?.pendingRoute ? pending : owner?.adapter;
+  if (!adapter?.isActiveOwner?.()) return null;
   return {
-    onRoute: (path) => owner.adapter.onRoute(path),
-    onUnsafeRoute: () => owner.adapter.onUnsafeRoute(),
+    onRoute: (path) => adapter.onRoute(path),
+    onUnsafeRoute: () => adapter.onUnsafeRoute(),
   };
 }

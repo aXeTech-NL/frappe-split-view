@@ -2,6 +2,7 @@
 
 | App version | Declared Frappe version | Exact inspected reference | Status |
 | --- | --- | --- | --- |
+| `16.2.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 | `16.1.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 | `16.0.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 | `16.0.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
@@ -26,7 +27,8 @@ Project spec is evidence for that environment only, not general ERPNext compatib
 
 - existing ordinary non-Single, non-table DocTypes, including tree-backed DocTypes through their stock ListView;
 - one embedded Form owner and one DocType in each JavaScript session;
-- stock ListView stays mounted;
+- stock ListView stays mounted while the selected document owns the URL and Form context;
+- marked document reload/deep links with tab-local filter, sort, paging and scroll restoration;
 - explicit standard Form save and repeated existing-record switching;
 - hard full-page boundary on app-controlled escape paths;
 - Split selectable as the standard Default View for each supported DocType.
@@ -36,7 +38,7 @@ Project spec is evidence for that environment only, not general ERPNext compatib
 - new/copy/rename/amend/print/workflow and custom route actions;
 - multiple DocTypes or embedded Forms per session;
 - custom DocType Layout, Tree, Single, table and special controllers;
-- complete refresh/deep-link/Back/Forward restoration;
+- complete native routing/history parity (Back/Forward uses a reload boundary);
 - safe Form teardown, long-session listener stability, canonical realtime conflict parity;
 - custom Tree-view controller behavior inside Split, arbitrary client scripts, child tables,
   permissions matrices, mobile embedded layout, or general ERPNext behavior.

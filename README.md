@@ -4,9 +4,10 @@
 
 Split View is an **experimental technical POC** for Frappe Desk. It adds Split to the
 standard v16 view selector, keeps the stock ListView mounted on the left, and mounts one persistent
-stock `frappe.ui.form.Form` for existing records of one DocType on the right.
+stock `frappe.ui.form.Form` for existing records of one DocType on the right. Opening a record makes
+its Form route and context authoritative; the list becomes the retained navigation pane.
 
-> `16.1.0` remains an experimental technical POC, not a production-readiness or generic
+> `16.2.0` remains an experimental technical POC, not a production-readiness or generic
 > compatibility claim. The major version identifies the compatible Frappe release line.
 
 ## What the POC proves
@@ -20,7 +21,13 @@ stock `frappe.ui.form.Form` for existing records of one DocType on the right.
 - Dirty record switching, close, and all `frappe.set_route`-driven navigation are blocked.
 - Full-page, narrow-screen, Form-link, and active-owner `frappe.set_route` transitions use a hard
   browser navigation so a second Form is not created in the same JavaScript session.
-- The divider width is the only persisted state and is bounded in `localStorage`.
+- Selecting a record uses `/desk/<doctype>/<name>?split_view=1`, including Frappe's `Form` context.
+- Refresh restores that document and the list's filters, ordering, loaded range and scroll positions.
+  List state is tab-scoped (`sessionStorage` and browser history), not stored in the document URL.
+- Close returns to the filtered Split list. Plain document URLs and **Open full page** remain native.
+- Back/Forward uses a reload boundary; unsaved changes block in-page history navigation and trigger
+  the browser's confirmation on refresh/leave. Unsaved field values are not persisted.
+- Divider width is bounded and stored per DocType in `localStorage`.
 
 Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-list`,
 `data-split-view-detail`, `data-split-view-divider`, `data-split-form-host`,
@@ -31,6 +38,7 @@ Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-li
 
 | App version | Declared Frappe range | Inspected reference | Status |
 | --- | --- | --- | --- |
+| `16.2.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.1.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.0.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.0.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
@@ -59,8 +67,11 @@ Only existing ordinary, non-Single, non-table DocTypes without a custom DocType 
 Tree-backed DocTypes use their stock ListView inside Split; their separate native Tree view remains unchanged.
 Unsupported metadata receives an explanatory fallback and a hard full-page action.
 
-This alpha does **not** claim complete browser Back/Forward/refresh restoration, normal Form-route
-semantics, multiple DocTypes per JavaScript session, teardown safety, realtime conflict parity,
+A copied split document link opens the document even without tab-local list state; in that case the
+list uses Frappe's saved/default settings. Refresh fetches current server data, not a frozen result set.
+
+This alpha does **not** claim complete native Form-route parity, multiple DocTypes per JavaScript
+session, teardown safety, realtime conflict parity,
 new/copy/rename/amend/print, workflow, arbitrary client scripts, custom route actions, child-table
 coverage, or mobile embedded forms. Form internals retain anonymous global listeners for the Desk
 session. `cur_frm` points at the embedded form only while the cached Split page is active.

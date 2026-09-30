@@ -72,22 +72,23 @@ export function compatibilityStatus(frappeObject) {
   const ListView = views?.ListView;
   const valid = Boolean(
     ListView &&
-      typeof views?.BaseList?.prototype?.setup_main_section === "function" &&
-      typeof frappeObject?.get_meta === "function" &&
-      typeof frappeObject?.model?.is_single === "function" &&
-      typeof frappeObject?.model?.set_default_views_for_doctype ===
-        "function" &&
-      Select?.prototype?.setup_views &&
-      Select?.prototype?.add_view_to_menu &&
-      Array.isArray(views?.view_modes) &&
-      views.view_modes.includes("List") &&
-      Array.isArray(router?.list_views) &&
-      router.list_views.includes("list") &&
-      router?.list_views_route?.list === "List" &&
-      typeof router.set_route === "function" &&
-      typeof router.get_route_from_arguments === "function" &&
-      typeof router.convert_from_standard_route === "function" &&
-      typeof router.make_url === "function",
+    typeof views?.BaseList?.prototype?.setup_main_section === "function" &&
+    typeof frappeObject?.get_meta === "function" &&
+    typeof frappeObject?.model?.is_single === "function" &&
+    typeof frappeObject?.model?.set_default_views_for_doctype === "function" &&
+    Select?.prototype?.setup_views &&
+    Select?.prototype?.add_view_to_menu &&
+    Array.isArray(views?.view_modes) &&
+    views.view_modes.includes("List") &&
+    Array.isArray(router?.list_views) &&
+    router.list_views.includes("list") &&
+    router?.list_views_route?.list === "List" &&
+    typeof router.set_route === "function" &&
+    typeof router.get_route_from_arguments === "function" &&
+    typeof router.convert_from_standard_route === "function" &&
+    typeof router.make_url === "function" &&
+    typeof router.render_page === "function" &&
+    typeof frappeObject.make_page === "function",
   );
   return {
     valid,
@@ -116,8 +117,7 @@ export function routeArgumentsToPath(router, args) {
 }
 
 export function encodeRouteOption(value) {
-  const serialized =
-    typeof value === "string" ? value : JSON.stringify(value);
+  const serialized = typeof value === "string" ? value : JSON.stringify(value);
   return encodeURIComponent(serialized);
 }
 
@@ -208,6 +208,7 @@ export function installSelectorCompatibility(frappeObject) {
   if (!proto[PATCH_FLAG]) {
     const nativeSetupViews = proto.setup_views;
     proto.setup_views = function splitViewSetupViews() {
+      if (this.list_view?.view_name === "Split") this.current_view = "Split";
       const allModes = views.view_modes;
       // Native setup would dereference views.Split from its closed local map.
       views.view_modes = allModes.filter((mode) => mode !== "Split");

@@ -50,10 +50,15 @@ For the required ERPNext CI environment install `v16.32.0`, ensure setup creates
 ## Browser assertions
 
 The ToDo smoke asserts selector registration, stable pane attributes, a real
-`frappe.ui.form.Form`, same object identity across records, active List container/cache ownership,
-current-document-only detail title, per-DocType Default View availability, explicit save persistence
-through REST, dirty switch/close blocking, page hide/show `cur_frm`, and hard full-page boundary. It
-does not mock Form as runtime proof.
+`frappe.ui.form.Form`, same object identity across records, retained list container and Form-owned
+route/page context, current-document-only title, Default View availability, save persistence through
+REST, dirty switch/close blocking, page hide/show `cur_frm`, and hard full-page boundary. It also
+covers reload restoration of document/filters/order, marked deep links without tab state,
+Back/Forward reload boundaries and Close/reopen. It does not mock Form as runtime proof.
+
+Dependency-free route/adapter tests cover compound filters, paging/scroll snapshots, disabled
+storage, dirty history/unload guards, route rollback, serialized activation and pending/queued
+Close cancellation. These do not replace the pinned browser CI.
 
 ## Manual work still required
 
@@ -61,4 +66,5 @@ PR #6 passed the required pinned GitHub CI jobs. Beyond the automated alpha gate
 repeated-switch memory/listeners and test links, toolbar actions, custom scripts, permissions/errors,
 grids, dialogs, keyboard/focus, RTL, narrow view, cache-busted build, migrate/upgrade/uninstall, and
 ERPNext Project at the recorded refs.
-Complete browser Back/Forward/refresh parity is explicitly not an alpha gate or claim.
+Marked document refresh/deep-link restoration and clean history traversal are regression gates.
+Complete native routing/lifecycle parity remains outside the POC.
