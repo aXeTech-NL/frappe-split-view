@@ -134,6 +134,13 @@ context("Split View ToDo POC", () => {
     cy.window().then((win) =>
       expect(win.cur_frm).to.eq(win.__splitFormIdentity),
     );
+    // Dismiss the expected dirty-guard message before checking the uncovered
+    // stock header after Close; a modal correctly hides fixed page controls.
+    cy.get(".modal:visible")
+      .should("contain", "Unsaved changes")
+      .find(".btn-modal-close")
+      .click();
+    cy.get(".modal:visible").should("not.exist");
 
     cy.window().then(async (win) => {
       await win.__splitFormIdentity.set_value("priority", savedPriority);
