@@ -29,6 +29,28 @@ Cypress.Commands.add("insert_doc", (doctype, args) => {
     });
 });
 
+Cypress.Commands.add("assert_split_view_selector", (view = "Split") => {
+  cy.window().should((win) => {
+    const list = win.cur_list;
+    expect(list?.views_list, "initialized view selector").to.exist;
+    expect(list.view_name).to.eq(view);
+    expect(list.views_list.current_view).to.eq(view);
+    const menu = list.views_menu;
+    const caption = menu
+      .closest(".custom-btn-group")
+      .find(".custom-btn-group-label");
+    expect(caption.text()).to.eq(win.__(`${view} View`));
+    expect(
+      menu.find(`[data-view='${view}']`),
+      "active view is not duplicated",
+    ).to.have.length(0);
+    const alternative = view === "Split" ? "List" : "Split";
+    const entry = menu.find(`[data-view='${alternative}']`);
+    expect(entry, "alternative view appears once").to.have.length(1);
+    expect(entry.text().trim()).to.eq(win.__(`${alternative} View`));
+  });
+});
+
 Cypress.Commands.add("assert_split_header_layout", () => {
   // Close restores row focus, which can scroll Desk beneath its fixed header.
   // Measure the unscrolled layout without changing either list scroll offset.
@@ -73,4 +95,5 @@ Cypress.Commands.add("assert_split_header_layout", () => {
       ).to.eq(true);
     }
   });
+  cy.assert_split_view_selector();
 });

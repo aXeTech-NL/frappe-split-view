@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file. The format 
 
 - Layout regression coverage for native header/filter placement, custom header actions, resizing,
   document switches, Close, reload and deep links in the pinned ToDo/Project browser suites.
+- Selector regression coverage for Split/List switching, distinct translated labels and document routes.
 
 ### Changed
 
@@ -32,6 +33,8 @@ All notable changes to this project will be documented in this file. The format 
 
 - List actions (including custom buttons, saved filters and Add) are no longer squeezed into the
   left half when a document is open.
+- An active Split View now displays "Split View" instead of falling back to "List View" in the
+  view selector. The alternative menu entry uses the same label; native view labels stay unchanged.
 
 ### Compatibility
 
