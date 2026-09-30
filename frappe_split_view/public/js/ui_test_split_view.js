@@ -215,9 +215,13 @@ context("Split View ToDo POC", () => {
     cy.window().then(async (win) => {
       await win.cur_list.ready;
       await win.cur_list.filter_area.clear(false);
-      await win.cur_list.filter_area.add([
+      await win.cur_list.filter_area.set([
         ["ToDo", "description", "like", `%${pagingMarker}%`],
       ]);
+      // Fixture setup must finish before paging: the normal debounced filter
+      // refresh resets start=0 and can otherwise race the Load More click.
+      win.cur_list.filter_area.debounced_refresh_list_view.cancel();
+      await win.frappe.views.ListView.prototype.refresh.call(win.cur_list);
     });
     cy.get("[data-split-view-list] .btn-paging[data-value='20']").then(
       ($button) => {
@@ -226,7 +230,14 @@ context("Split View ToDo POC", () => {
         if (!$button.prop("disabled")) cy.wrap($button).click();
       },
     );
-    cy.window().should((win) => expect(win.cur_list.data).to.have.length(20));
+    cy.window().should((win) => {
+      expect(win.cur_list.data).to.have.length(20);
+      expect(
+        win.cur_list.data.every((doc) =>
+          doc.description.includes(pagingMarker),
+        ),
+      ).to.eq(true);
+    });
     cy.get("[data-split-view-list] .btn-more").click();
     cy.window().should((win) => expect(win.cur_list.data).to.have.length(25));
     cy.window().then(async (win) => {
