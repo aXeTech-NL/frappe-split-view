@@ -14,6 +14,19 @@
 		min-width: 0;
 	}
 
+	.split-view-list > .page-head {
+		position: static;
+	}
+
+	.split-view-list > .page-head .container {
+		max-width: 100%;
+		padding-inline: var(--padding-sm);
+	}
+
+	.split-view-list > .page-form {
+		flex-wrap: wrap;
+	}
+
 	.split-view-divider {
 		background: var(--border-color);
 		cursor: col-resize;

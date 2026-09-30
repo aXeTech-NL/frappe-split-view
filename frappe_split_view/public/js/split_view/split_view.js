@@ -6,6 +6,11 @@ import {
 } from "./split_form_adapter.js";
 import { SplitListAdapter } from "./split_list_adapter.js";
 import {
+  SplitDocumentRoute,
+  isSplitDocumentRoute,
+  readListState,
+} from "./split_document_route.js";
+import {
   DEFAULT_LIST_WIDTH,
   MAX_LIST_WIDTH,
   MIN_LIST_WIDTH,
@@ -21,16 +26,103 @@ export class SplitView extends frappe.views.ListView {
     return "Split";
   }
 
+  show() {
+    this.parent.disable_scroll_to_top = true;
+    this.ready = frappe.views.BaseList.prototype.show.call(this).then(() => {
+      const state = this.restoredListState;
+      if (state) {
+        this.splitRoot.querySelector("[data-split-view-list]").scrollTop =
+          state.scrollTop;
+        const result = this.$frappe_list.find(".result-container").get(0);
+        if (result) result.scrollTop = state.resultScrollTop;
+        this.restoredListState = null;
+        this.documentRoute.persist();
+      }
+    });
+    return this.ready;
+  }
+
+  static showDocumentRoute(route) {
+    const [, doctype, name] = route;
+    const key = ["List", doctype, "Split"].join("/");
+    let list = frappe.views.list_view[key];
+    if (!list) {
+      list = new SplitView({
+        doctype,
+        parent: frappe.make_page(true, key, null),
+      });
+      frappe.views.list_view[key] = list;
+    } else {
+      frappe.container.change_to(list.parent);
+    }
+    window.cur_list = list;
+    return list.ready.then(() => {
+      if (frappe.get_route_str() !== route.join("/")) return false;
+      return list.activateRecord(name);
+    });
+  }
+
   setup_defaults() {
     const setup = super.setup_defaults();
     this.instanceId = ++instanceCounter;
-    return setup;
+    // Keep a stable cache identity even when bootstrapping on a Form route.
+    this.page_name = ["List", this.doctype, "Split"].join("/");
+    this.restoredListState = readListState(frappe, this.doctype);
+    return Promise.resolve(setup).then(() => {
+      const state = this.restoredListState;
+      if (!state) return;
+      this.filters = state.filters;
+      this.sort_by = state.sortBy;
+      this.sort_order = state.sortOrder;
+      this.page_length = state.pageLength;
+      this.selected_page_count = state.pageCount;
+    });
+  }
+
+  before_refresh() {
+    // A document's query parameters must never become list filters.
+    if (isSplitDocumentRoute(frappe.get_route(), window.location.search))
+      return Promise.resolve();
+    return super.before_refresh();
+  }
+
+  update_url_with_filters() {
+    if (!isSplitDocumentRoute(frappe.get_route(), window.location.search))
+      super.update_url_with_filters();
+    this.documentRoute?.persist();
   }
 
   setup_main_section() {
     return frappe.views.BaseList.prototype.setup_main_section
       .call(this)
       .then(() => this.setupSplitLayout());
+  }
+
+  setup_paging_area() {
+    super.setup_paging_area();
+    // page_length is the total loaded range; the button represents batch size.
+    this.$paging_area
+      .find(".btn-paging")
+      .removeClass("btn-info")
+      .prop("disabled", false);
+    this.$paging_area
+      .find(`.btn-paging[data-value="${this.selected_page_count}"]`)
+      .addClass("btn-info")
+      .prop("disabled", true);
+  }
+
+  process_document_refreshes() {
+    if (
+      isSplitDocumentRoute(frappe.get_route(), window.location.search) &&
+      this.documentRoute?.isActive()
+    ) {
+      if (this.pending_document_refreshes.length) {
+        this.pending_document_refreshes = [];
+        this.refresh();
+      }
+      return;
+    }
+    return super.process_document_refreshes();
   }
 
   setup_list_click() {
@@ -86,7 +178,12 @@ export class SplitView extends frappe.views.ListView {
     detail.append(header, formHost);
     this.splitRoot.append(listPane, divider, detail);
     main.append(this.splitRoot);
-    listPane.append(this.$frappe_list.get(0));
+    // List controls belong to the embedded list, not the document toolbar.
+    listPane.append(
+      this.page.page_head.get(0),
+      this.page.page_form.get(0),
+      this.$frappe_list.get(0),
+    );
     this.detailPane = detail;
     this.formHost = formHost;
     this.splitFormAdapter = new SplitFormAdapter({
@@ -95,6 +192,19 @@ export class SplitView extends frappe.views.ListView {
       listView: this,
       onSelection: (name) => this.setSelection(name),
     });
+    this.documentRoute = new SplitDocumentRoute(this);
+    let scrollTimer;
+    const rememberScroll = () => {
+      if (scrollTimer) return;
+      scrollTimer = setTimeout(() => {
+        scrollTimer = null;
+        this.documentRoute.persist();
+      }, 500);
+    };
+    listPane.addEventListener("scroll", rememberScroll, { passive: true });
+    this.$frappe_list
+      .find(".result-container")
+      .on("scroll.frappe-split-view", rememberScroll);
     this.applyStoredWidth();
     this.bindSplitEvents();
     this.page.wrapper.on(
@@ -158,6 +268,7 @@ export class SplitView extends frappe.views.ListView {
 
   closeDetail() {
     if (!this.splitFormAdapter.close()) return false;
+    this.documentRoute.close();
     this.detailPane.hidden = true;
     this.splitRoot.classList.remove("has-selection");
     if (this.selectedRowLink?.isConnected) this.selectedRowLink.focus();

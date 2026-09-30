@@ -7,6 +7,7 @@ import {
 } from "./compatibility.js";
 import { SplitView, exposeDebugApi } from "./split_view.js";
 import { getActiveEmbeddedFormOwner } from "./split_form_adapter.js";
+import { installDocumentRouteCompatibility } from "./split_document_route.js";
 
 const REGISTERED = Symbol.for("frappe_split_view.registered");
 
@@ -24,6 +25,10 @@ export function registerSplitView() {
     getActiveEmbeddedFormOwner,
   );
   if (!routeBoundary.valid) return false;
+  const documentRoutes = installDocumentRouteCompatibility(frappe, (route) =>
+    SplitView.showDocumentRoute(route),
+  );
+  if (!documentRoutes.valid) return false;
   frappe.views.SplitView = SplitView;
   Object.defineProperty(frappe, REGISTERED, { value: true });
   exposeDebugApi();

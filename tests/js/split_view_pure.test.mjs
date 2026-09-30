@@ -286,6 +286,7 @@ function compatibleFrappe(overrides = {}) {
     get_meta: () => ({}),
     treeview_settings: {},
     after_ajax() {},
+    make_page() {},
     ui: { form: { Form: class {} } },
     model: {
       is_single: () => false,
@@ -310,6 +311,7 @@ function compatibleFrappe(overrides = {}) {
       get_route_from_arguments() {},
       convert_from_standard_route() {},
       make_url() {},
+      render_page() {},
     },
     ...overrides,
   };

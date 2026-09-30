@@ -12,6 +12,45 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Fixed
 
+## [16.2.0] - 2026-09-30
+
+### Highlights
+
+- Opening a record makes its document URL and Form context authoritative while retaining the list pane.
+
+### Added
+
+- Marked document deep links and refresh restoration of the selected document, filters, sort order,
+  loaded row capacity, paging batch size and scroll positions.
+- Tab-local list snapshots, dirty browser-navigation protection and regression coverage for routing,
+  history, lifecycle and pending/queued activation cancellation.
+
+### Changed
+
+- List toolbar and filter controls live in the list pane; the document owns the active Form Page.
+- Clean Back/Forward uses a reload boundary. Plain document links and full-page open remain native.
+
+### Fixed
+
+- Refresh no longer loses the selected document.
+- Closing during a pending switch cancels queued selections and rolls back the tentative route.
+- Form activation waits for the stock asynchronous render queue instead of the early render event.
+- Visible-list realtime notifications no longer unsubscribe just because the active route is a Form.
+
+### Compatibility
+
+- Remains an experimental Frappe `>=16.0.0,<17.0.0` POC, inspected against Frappe `v16.31.0`
+  (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`). Required browser CI also pins ERPNext `v16.32.0`
+  (`81a6f97566b83609c3917404a560b673050e907d`); pending CI is not runtime validation.
+- No claim of generic client-script, native lifecycle/history or realtime-conflict parity.
+
+### Upgrade notes
+
+- After merge and successful release checks, install the immutable `v16.2.0` tag, build assets,
+  migrate and restart Desk processes.
+- Document URLs use `?split_view=1`. List state remains tab-local; copied links use the recipient's
+  saved/default list settings. Unsaved field values are not persisted across refresh.
+
 ## [16.1.0] - 2026-08-20
 
 ### Highlights

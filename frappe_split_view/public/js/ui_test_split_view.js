@@ -60,7 +60,14 @@ context("Split View ToDo POC", () => {
       expect(owner.frm.docname).to.eq(first);
       expect(win.frappe.container.page).to.eq(win.cur_list.parent);
       expect(win.frappe.ui.pages[win.frappe.get_route_str()]).to.eq(
-        win.cur_list.page,
+        owner.frm.page,
+      );
+      expect(win.frappe.get_route()).to.deep.eq(["Form", "ToDo", first]);
+      expect(win.location.pathname).to.eq(
+        `/desk/todo/${encodeURIComponent(first)}`,
+      );
+      expect(new URLSearchParams(win.location.search).get("split_view")).to.eq(
+        "1",
       );
       expect(root.dataset.selectedName).to.eq(first);
       win.__splitFormIdentity = owner.frm;
@@ -126,6 +133,126 @@ context("Split View ToDo POC", () => {
     });
   });
 
+  it("restores the document and embedded list after refresh and history navigation", () => {
+    let filters;
+    let names;
+    let list;
+    let listNode;
+    let documentUrl;
+    cy.visit("/desk/todo/view/split");
+    cy.get("[data-frappe-split-view]").should("be.visible");
+    cy.window().then(async (win) => {
+      await win.cur_list.ready;
+      await win.cur_list.filter_area.add([
+        ["ToDo", "description", "like", `%${marker}%`],
+      ]);
+      win.cur_list.sort_selector.set_value("description", "asc");
+      win.cur_list.on_sort_change("description", "asc");
+    });
+    cy.window().should((win) => expect(win.cur_list.data).to.have.length(2));
+    cy.window().then(async (win) => {
+      list = win.cur_list;
+      listNode = list.$frappe_list.get(0);
+      filters = list.filter_area.get();
+      names = list.data.map((doc) => doc.name);
+      await list.activateRecord(first);
+      await list.activateRecord(second);
+      expect(win.cur_list).to.eq(list);
+      expect(list.$frappe_list.get(0)).to.eq(listNode);
+      expect(list.data.map((doc) => doc.name)).to.deep.eq(names);
+      expect(win.frappe.get_route()).to.deep.eq(["Form", "ToDo", second]);
+      documentUrl = win.location.href;
+    });
+    cy.reload();
+    cy.get(`[data-frappe-split-view][data-selected-name="${second}"]`).should(
+      "be.visible",
+    );
+    cy.window().then((win) => {
+      expect(win.location.href).to.eq(documentUrl);
+      expect(win.cur_frm.docname).to.eq(second);
+      expect(win.frappe.get_route()).to.deep.eq(["Form", "ToDo", second]);
+      expect(win.cur_list.filter_area.get()).to.deep.eq(filters);
+      expect(win.cur_list.sort_selector.sort_by).to.eq("description");
+      expect(win.cur_list.sort_selector.sort_order).to.eq("asc");
+      expect(win.cur_list.data.map((doc) => doc.name)).to.deep.eq(names);
+    });
+    cy.go("back");
+    cy.get(`[data-frappe-split-view][data-selected-name="${first}"]`).should(
+      "be.visible",
+    );
+    cy.window().should((win) => expect(win.cur_frm.docname).to.eq(first));
+    cy.go("forward");
+    cy.get(`[data-frappe-split-view][data-selected-name="${second}"]`).should(
+      "be.visible",
+    );
+    cy.get("[data-split-close]").click();
+    cy.location("pathname").should("eq", "/desk/todo/view/split");
+    // Reopening the same record after Close must re-enter document context.
+    cy.window().then((win) => win.cur_list.activateRecord(second));
+    cy.location("pathname").should(
+      "eq",
+      `/desk/todo/${encodeURIComponent(second)}`,
+    );
+    cy.window().should((win) => expect(win.cur_frm.docname).to.eq(second));
+  });
+
+  it("restores loaded rows, paging batch and result scroll after reload", () => {
+    const pagingMarker = `${marker}-paging`;
+    for (let index = 0; index < 25; index++) {
+      cy.insert_doc("ToDo", {
+        description: `${pagingMarker}-${index}`,
+        status: "Open",
+      });
+    }
+    cy.visit("/desk/todo/view/split");
+    cy.get("[data-frappe-split-view]").should("be.visible");
+    cy.window().then(async (win) => {
+      await win.cur_list.ready;
+      await win.cur_list.filter_area.clear(false);
+      await win.cur_list.filter_area.add([
+        ["ToDo", "description", "like", `%${pagingMarker}%`],
+      ]);
+    });
+    cy.get("[data-split-view-list] .btn-paging[data-value='20']").click();
+    cy.window().should((win) => expect(win.cur_list.data).to.have.length(20));
+    cy.get("[data-split-view-list] .btn-more").click();
+    cy.window().should((win) => expect(win.cur_list.data).to.have.length(25));
+    cy.window().then(async (win) => {
+      win.cur_list.$frappe_list.find(".result-container").get(0).scrollTop =
+        150;
+      await win.cur_list.activateRecord(win.cur_list.data[0].name);
+    });
+    cy.reload();
+    cy.get("[data-split-form-host='true']").should("be.visible");
+    cy.window().should((win) => {
+      expect(win.cur_list.data).to.have.length(25);
+      expect(win.cur_list.page_length).to.eq(40);
+      expect(win.cur_list.selected_page_count).to.eq(20);
+      expect(
+        win.cur_list.$frappe_list.find(".result-container").get(0).scrollTop,
+      ).to.eq(150);
+    });
+    cy.get("[data-split-view-list] .btn-paging[data-value='20']").should(
+      "have.class",
+      "btn-info",
+    );
+  });
+
+  it("opens a marked document deep link without saved list state", () => {
+    cy.visit(`/desk/todo/${encodeURIComponent(first)}?split_view=1`, {
+      onBeforeLoad(win) {
+        win.sessionStorage.clear();
+      },
+    });
+    cy.get(`[data-frappe-split-view][data-selected-name="${first}"]`).should(
+      "be.visible",
+    );
+    cy.window().should((win) => {
+      expect(win.cur_frm.docname).to.eq(first);
+      expect(win.frappe.get_route()).to.deep.eq(["Form", "ToDo", first]);
+    });
+  });
+
   it("guards dirty set_route calls, then hard-navigates the clean boundary", () => {
     cy.visit("/desk/todo/view/split");
     cy.get("[data-frappe-split-view][data-doctype='ToDo']").should(
@@ -140,7 +267,9 @@ context("Split View ToDo POC", () => {
         `${marker}-dirty-route`,
       );
       expect(await win.frappe.set_route("Form", "ToDo", second)).to.eq(false);
-      expect(win.location.pathname).to.eq("/desk/todo/view/split");
+      expect(win.location.pathname).to.eq(
+        `/desk/todo/${encodeURIComponent(first)}`,
+      );
       expect(win.frappe_split_view.debug.owner.frm.docname).to.eq(first);
       expect(await win.cur_list.splitFormAdapter.save()).to.eq(true);
       return win.frappe.set_route("Form", "ToDo", second);
