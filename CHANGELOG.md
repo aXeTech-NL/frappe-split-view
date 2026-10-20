@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [16.2.2] - 2026-10-20
+
+### Highlights
+
+- Restore Split View on Frappe v16.52.0 while retaining real Form scripts and child-grid templates.
+- Preserve document history across sidebar-shell URL normalization and reload.
+
 ### Added
 
 - Feature-detected support for Frappe v16.52.0's nested view switcher alongside the legacy selector.
@@ -28,16 +35,22 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Compatibility
 
-- Frappe v16.52.0 reference: `4515014c87ece6cb20ee91d2cfb121c5cbd1ff4a`.
-- Existing v16.31.0 / ERPNext v16.32.0 pins and the experimental POC scope remain unchanged.
-- Local Workbench browser verification includes its actual child-grid cards/actions, record reload
-  and Close. Broader browser evidence comes from the pinned CI jobs; pending CI is not proof.
+- Required Frappe references: `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) and
+  `v16.52.0` (`4515014c87ece6cb20ee91d2cfb121c5cbd1ff4a`).
+- ERPNext Project integration: `v16.32.0` (`81a6f97566b83609c3917404a560b673050e907d`)
+  on Frappe `v16.31.0`. Both Frappe browser jobs and the separate ERPNext job passed for PR #17.
+- Local Workbench browser verification covers four Split DocTypes, real child-grid cards and
+  permission-aware actions, Save, record reuse, dirty guards, reload/Back/Forward, native Tree/Report
+  coexistence and mobile full-page fallback. Proposal publication was not exercised.
+- Remains an experimental technical POC for Frappe `>=16.0.0,<17.0.0`, not generic DocType/ERPNext
+  compatibility, complete lifecycle parity or a production-readiness claim.
 
 ### Upgrade notes
 
-- After release, update the app, build its assets and reload Desk. No DocType-default migration is
-  needed: existing `Split` defaults become usable again once the selector registers.
-- This fix is unreleased; a version bump and release tag follow maintainer review and merge.
+- Install or update from the immutable `v16.2.2` tag, migrate, build app assets and restart Desk
+  processes. Reload Desk to pick up the compatibility fix.
+- No DocType-default migration is needed: existing `Split` defaults become usable again once the
+  selector registers. Document URLs and unsaved-change protection remain unchanged.
 
 ## [16.2.1] - 2026-09-30
 
