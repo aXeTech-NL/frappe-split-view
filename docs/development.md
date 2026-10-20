@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-CI pins Frappe `v16.31.0` with Python 3.14, Node 24, MariaDB 11.8, Redis, Chrome/Chromium,
-and Bench. Use a disposable site: the POC intentionally exercises private Desk APIs.
+CI pins Frappe `v16.31.0` and `v16.52.0` with Python 3.14, Node 24, MariaDB 11.8, Redis,
+Chrome/Chromium and Bench. Use a disposable site: the POC intentionally exercises private Desk APIs.
 
 ## Bench setup
 
@@ -37,12 +37,17 @@ python -m build --sdist
 Complete the site wizard and run Bench/Cypress with the site available:
 
 ```bash
+bench --site split-view.test set-config allow_tests true
 bench --site split-view.test execute frappe.utils.install.complete_setup_wizard
+bench --site split-view.test execute frappe_split_view.tests.ui_test_helpers.setup_child_grid_poc
 bench serve --port 8000
 bench --site split-view.test run-ui-tests frappe_split_view \
   --headless --browser "$(command -v google-chrome || command -v chromium)" \
-  --spec frappe_split_view/public/js/ui_test_split_view.js
+  --spec 'frappe_split_view/public/js/ui_test_split_view{,_grid}.js'
 ```
+
+Repeat with `--frappe-branch v16.52.0` to cover the new nested view selector. The custom parent/row
+fixtures belong only on disposable test sites; no stock DocType is altered.
 
 For the required ERPNext CI environment install `v16.32.0`, ensure setup creates a Company, and run
 `ui_test_split_view_project.js`. ERPNext remains an integration dependency only.
@@ -57,7 +62,13 @@ covers reload restoration of document/filters/order, marked deep links without t
 Back/Forward reload boundaries and Close/reopen. Both ToDo and Project assert full-width list
 header/filter geometry above the panes, with document controls still on the right, and the active
 "Split View" selector caption. ToDo also checks Split/List round trips, a custom header action,
-divider resizing, Close, reload and deep-link entry. It does not mock Form as runtime proof.
+divider resizing, Close, reload and deep-link entry. Selector helpers use the actual legacy dropdown
+or nested-menu UI, including List's Default Layout submenu. The child-grid spec supplies a test
+`__form_grid_templates` entry and client script through the metadata load response before constructing
+a real Form, checks its escaped cards and refresh hook, saves a scripted action, and switches records
+without replacing the Form. Route checks allow the native sidebar-shell prefix; paging checks cover
+legacy buttons and v16.52 radio pills. It does not mock
+Form or Grid as runtime proof.
 
 Dependency-free route/adapter tests cover compound filters, paging/scroll snapshots, disabled
 storage, dirty history/unload guards, route rollback, serialized activation and pending/queued

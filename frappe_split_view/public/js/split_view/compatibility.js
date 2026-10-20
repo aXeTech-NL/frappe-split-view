@@ -2,10 +2,9 @@
 
 import { splitViewEligibilityReason } from "./split_view_state.js";
 
-// Private API adapter tested against Frappe 6a329d068416768ec47ccd3326b9cc95a8d7bf99.
-// Frappe v16 has no third-party view registration API and ListViewSelect closes over
-// its view definition map. Every mutation below is feature-detected and reversible by reload.
-export const TESTED_FRAPPE_COMMIT = "6a329d068416768ec47ccd3326b9cc95a8d7bf99";
+// Private API adapters for the legacy (v16.31.0) and nested (v16.52.0) selectors.
+// Frappe v16 has no third-party view registration API. Every mutation below is
+// feature-detected and reversible by reload; see docs/compatibility.md for evidence.
 const PATCH_FLAG = Symbol.for("frappe_split_view.v16_selector_patch");
 const DEFAULT_VIEW_PATCH_FLAG = Symbol.for(
   "frappe_split_view.v16_default_view_patch",
@@ -65,6 +64,19 @@ function installDefaultViewCompatibility(frappeObject) {
   Object.defineProperty(model, DEFAULT_VIEW_PATCH_FLAG, { value: true });
 }
 
+function selectorApi(proto) {
+  if (typeof proto?.make_switcher === "function") {
+    return ["set_current_view", "get_views", "get_view_options", "get_trigger_label"]
+      .every((method) => typeof proto[method] === "function")
+      ? "nested"
+      : null;
+  }
+  return typeof proto?.setup_views === "function" &&
+    typeof proto?.add_view_to_menu === "function"
+    ? "legacy"
+    : null;
+}
+
 export function compatibilityStatus(frappeObject) {
   const views = frappeObject?.views;
   const router = frappeObject?.router;
@@ -76,8 +88,7 @@ export function compatibilityStatus(frappeObject) {
     typeof frappeObject?.get_meta === "function" &&
     typeof frappeObject?.model?.is_single === "function" &&
     typeof frappeObject?.model?.set_default_views_for_doctype === "function" &&
-    Select?.prototype?.setup_views &&
-    Select?.prototype?.add_view_to_menu &&
+    selectorApi(Select?.prototype) &&
     Array.isArray(views?.view_modes) &&
     views.view_modes.includes("List") &&
     Array.isArray(router?.list_views) &&
@@ -186,6 +197,55 @@ export function installRouteCompatibility(
   return { valid: true, reason: null };
 }
 
+function installNestedSelector(proto) {
+  const nativeSetCurrentView = proto.set_current_view;
+  proto.set_current_view = function splitViewSetCurrentView(...args) {
+    const result = nativeSetCurrentView.apply(this, args);
+    this.label_map = { ...this.label_map, Split: __("Split View") };
+    // A document-led route contains a record name, not the owning list's view.
+    // Set this before make_switcher() renders its trigger and selected menu row.
+    if (this.list_view?.view_name === "Split") this.current_view = "Split";
+    return result;
+  };
+  const nativeGetViews = proto.get_views;
+  proto.get_views = function splitViewGetViews(...args) {
+    return {
+      ...nativeGetViews.apply(this, args),
+      Split: {
+        condition: this.doctype !== "File",
+        action: () => this.set_route("split"),
+      },
+    };
+  };
+}
+
+function installLegacySelector(proto, views) {
+  const nativeSetupViews = proto.setup_views;
+  proto.setup_views = function splitViewSetupViews() {
+    this.label_map = { ...this.label_map, Split: __("Split View") };
+    if (this.list_view?.view_name === "Split") {
+      this.current_view = "Split";
+      // BaseList's closed label map creates this button as "List View".
+      // Update only this selector's caption, preserving its icons/handlers.
+      this.parent
+        .closest(".custom-btn-group")
+        .find(".custom-btn-group-label")
+        .text(this.label_map.Split);
+    }
+    const allModes = views.view_modes;
+    // Native setup would dereference views.Split from its closed local map.
+    views.view_modes = allModes.filter((mode) => mode !== "Split");
+    try {
+      nativeSetupViews.call(this);
+    } finally {
+      views.view_modes = allModes;
+    }
+    if (this.doctype !== "File" && this.current_view !== "Split") {
+      this.add_view_to_menu("Split", () => this.set_route("split"));
+    }
+  };
+}
+
 export function installSelectorCompatibility(frappeObject) {
   const status = compatibilityStatus(frappeObject);
   if (!status.valid) return status;
@@ -206,30 +266,8 @@ export function installSelectorCompatibility(frappeObject) {
   installDefaultViewCompatibility(frappeObject);
   const proto = views.ListViewSelect.prototype;
   if (!proto[PATCH_FLAG]) {
-    const nativeSetupViews = proto.setup_views;
-    proto.setup_views = function splitViewSetupViews() {
-      this.label_map = { ...this.label_map, Split: __("Split View") };
-      if (this.list_view?.view_name === "Split") {
-        this.current_view = "Split";
-        // BaseList's closed label map creates this button as "List View".
-        // Update only this selector's caption, preserving its icons/handlers.
-        this.parent
-          .closest(".custom-btn-group")
-          .find(".custom-btn-group-label")
-          .text(this.label_map.Split);
-      }
-      const allModes = views.view_modes;
-      // Native setup would dereference views.Split from its closed local map.
-      views.view_modes = allModes.filter((mode) => mode !== "Split");
-      try {
-        nativeSetupViews.call(this);
-      } finally {
-        views.view_modes = allModes;
-      }
-      if (this.doctype !== "File" && this.current_view !== "Split") {
-        this.add_view_to_menu("Split", () => this.set_route("split"));
-      }
-    };
+    if (selectorApi(proto) === "nested") installNestedSelector(proto);
+    else installLegacySelector(proto, views);
     Object.defineProperty(proto, PATCH_FLAG, { value: true });
   }
 

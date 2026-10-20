@@ -8,9 +8,36 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Added
 
+- Feature-detected support for Frappe v16.52.0's nested view switcher alongside the legacy selector.
+- Regression coverage for native saved-layout/report/board submenus, selected-view labels,
+  fail-closed detection and a real Form child-grid template with a scripted action and Save.
+- A pinned Frappe v16.52.0 Bench/browser CI job alongside v16.31.0 and the existing ERPNext job.
+
 ### Changed
 
+- Browser selector checks exercise both the legacy dropdown and the new nested menu through UI clicks.
+
 ### Fixed
+
+- Split View no longer disables itself on Frappe v16.52.0 because `setup_views()` was removed.
+  Its menu entry, Default View option and document-led selector label are restored without
+  replacing the embedded Form with the native read-only report preview.
+- Split-controlled history writes now synchronize v16.52's sidebar-shell URL context. Rehydrating
+  the same document no longer adds a duplicate entry when its prefix or tab hash is normalized,
+  so Back/Forward can reach the previously selected document after a reload.
+
+### Compatibility
+
+- Frappe v16.52.0 reference: `4515014c87ece6cb20ee91d2cfb121c5cbd1ff4a`.
+- Existing v16.31.0 / ERPNext v16.32.0 pins and the experimental POC scope remain unchanged.
+- Local Workbench browser verification includes its actual child-grid cards/actions, record reload
+  and Close. Broader browser evidence comes from the pinned CI jobs; pending CI is not proof.
+
+### Upgrade notes
+
+- After release, update the app, build its assets and reload Desk. No DocType-default migration is
+  needed: existing `Split` defaults become usable again once the selector registers.
+- This fix is unreleased; a version bump and release tag follow maintainer review and merge.
 
 ## [16.2.1] - 2026-09-30
 

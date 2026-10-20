@@ -3,7 +3,8 @@
 ## Experimental boundary
 
 This remains a technical POC, not a general embeddable Form API. Private integration is based on
-Frappe `6a329d068416768ec47ccd3326b9cc95a8d7bf99` (v16.31.0). Frappe v16 offers no public
+Frappe `6a329d068416768ec47ccd3326b9cc95a8d7bf99` (v16.31.0) and
+`4515014c87ece6cb20ee91d2cfb121c5cbd1ff4a` (v16.52.0). Frappe v16 offers no public
 custom view-selector hook and Form has no symmetric teardown API.
 
 ## Modules
@@ -11,7 +12,10 @@ custom view-selector hook and Form has no symmetric teardown API.
 - `split_view_registry.js` registers the view and document-route renderer after feature detection.
 - `compatibility.js` owns selector, Default View and active-owner `set_route` compatibility.
   Split's selector caption follows the owning list even on a document route, overriding BaseList's
-  hard-coded "List View" fallback. Native selectors keep their own labels and omit the active view.
+  hard-coded "List View" fallback. The legacy adapter wraps `setup_views()`; the nested switcher
+  adapter extends `get_views()` and sets the owning view in `set_current_view()` before the trigger
+  is made. Native labels and variant submenus remain unchanged. The legacy menu omits its active
+  view; the nested menu marks it selected, following each version's native behavior.
 - `split_view.js` extends stock ListView. The same list, controls and DOM remain mounted across
   document switches. Its cache identity stays `List/<doctype>/Split`, including on a deep link.
 - `split_list_adapter.js` intercepts only primary activation of canonical record anchors. Modified
@@ -27,7 +31,10 @@ custom view-selector hook and Form has no symmetric teardown API.
 The entry route remains `/desk/<doctype>/view/split`. Selecting an existing record changes the URL
 to `/desk/<doctype>/<name>?split_view=1` and Frappe's route to `Form/<doctype>/<name>` **before**
 Form loading and client hooks. The Form Page owns `frappe.ui.pages[current_route]`, `cur_frm` points
-to that Form, and the browser title and body route identify the document. The existing Split page
+to that Form, and the browser title and body route identify the document. On v16.52, Split's history writes also
+synchronize the router's sidebar-shell context, preserving native `/desk/<shell>/...` URLs.
+Rehydrating the same marked document never pushes another entry merely because native rendering
+normalizes its shell prefix or active-tab hash. The existing Split page
 remains the physical Desk container; no second Form or List is constructed. The stock list toolbar
 and filters keep their native full-width positions above both panes. Only the list results/paging
 move into the left pane; document-specific controls remain inside the right pane.

@@ -40,6 +40,7 @@ Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-li
 
 | App version | Declared Frappe range | Inspected reference | Status |
 | --- | --- | --- | --- |
+| Unreleased | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` and `v16.52.0` | Experimental; see CI results for this ref |
 | `16.2.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.2.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.1.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
@@ -49,6 +50,11 @@ Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-li
 Required CI pins ERPNext Project integration to ERPNext `v16.32.0`
 (`81a6f97566b83609c3917404a560b673050e907d`). The app does not depend on ERPNext. See
 [compatibility notes](docs/compatibility.md).
+
+The unreleased compatibility fix restores Split in v16.52.0's nested view menu; versions through
+16.2.1 disable themselves there because the old selector API is absent. Split continues to embed a
+full Form, including its child-grid templates and scripts. Frappe's native report side panel is a
+separate, read-only preview, not a replacement for this editing surface.
 
 ## Installation for evaluation
 
@@ -75,8 +81,8 @@ list uses Frappe's saved/default settings. Refresh fetches current server data, 
 
 This alpha does **not** claim complete native Form-route parity, multiple DocTypes per JavaScript
 session, teardown safety, realtime conflict parity,
-new/copy/rename/amend/print, workflow, arbitrary client scripts, custom route actions, child-table
-coverage, or mobile embedded forms. Form internals retain anonymous global listeners for the Desk
+new/copy/rename/amend/print, workflow, arbitrary client scripts, custom route actions, child tables
+beyond the targeted template/action regression, or mobile embedded forms. Form internals retain anonymous global listeners for the Desk
 session. `cur_frm` points at the embedded form only while the cached Split page is active.
 
 ## Development

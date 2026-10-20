@@ -35,6 +35,18 @@ Cypress.Commands.add("assert_split_view_selector", (view = "Split") => {
     expect(list?.views_list, "initialized view selector").to.exist;
     expect(list.view_name).to.eq(view);
     expect(list.views_list.current_view).to.eq(view);
+    const selector = list.views_list;
+    if (selector.$trigger) {
+      expect(selector.$trigger.find(".custom-btn-group-label").text()).to.eq(
+        win.__(`${view} View`),
+      );
+      const options = selector.get_view_options();
+      const active = options.filter((item) => item.selected);
+      expect(active, "one active view in the nested menu").to.have.length(1);
+      expect(active[0].label).to.eq(win.__(`${view} View`));
+      expect(options.filter((item) => item.label === win.__("Split View"))).to.have.length(1);
+      return;
+    }
     const menu = list.views_menu;
     const caption = menu
       .closest(".custom-btn-group")
@@ -48,6 +60,38 @@ Cypress.Commands.add("assert_split_view_selector", (view = "Split") => {
     const entry = menu.find(`[data-view='${alternative}']`);
     expect(entry, "alternative view appears once").to.have.length(1);
     expect(entry.text().trim()).to.eq(win.__(`${alternative} View`));
+  });
+});
+
+Cypress.Commands.add("assert_split_path", (path) => {
+  cy.window().should((win) => {
+    const router = win.frappe.router;
+    const shell = router.current_shell;
+    const scoped = shell && router.shell_slug
+      ? path.replace("/desk/", `/desk/${router.shell_slug(shell)}/`)
+      : path;
+    expect(win.location.pathname).to.be.oneOf([path, scoped]);
+  });
+});
+
+Cypress.Commands.add("select_split_view", (view) => {
+  cy.window().should((win) => {
+    expect(win.cur_list?.views_list, "view selector is ready").to.exist;
+  }).then((win) => {
+    const selector = win.cur_list.views_list;
+    if (selector.$trigger) {
+      cy.wrap(selector.$trigger).click();
+      cy.contains(".es-menu__label:visible", win.__(`${view} View`)).click();
+      // The new List row opens a submenu instead of navigating immediately.
+      if (view === "List") {
+        cy.contains(".es-menu__label:visible", win.__("Default Layout")).click();
+      }
+    } else {
+      const menu = win.cur_list.views_menu;
+      cy.wrap(menu.closest(".custom-btn-group"))
+        .find("[data-toggle='dropdown']").click();
+      cy.wrap(menu).find(`[data-view='${view}']`).should("be.visible").click();
+    }
   });
 });
 

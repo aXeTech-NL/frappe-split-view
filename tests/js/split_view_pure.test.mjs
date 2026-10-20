@@ -321,6 +321,127 @@ function compatibleFrappe(overrides = {}) {
   return frappeObject;
 }
 
+function nestedSelectorFixture(t) {
+  const previousTranslate = globalThis.__;
+  globalThis.__ = (text) => `translated:${text}`;
+  t.after(() => {
+    if (previousTranslate === undefined) delete globalThis.__;
+    else globalThis.__ = previousTranslate;
+  });
+  const frappeObject = compatibleFrappe();
+  frappeObject.views.view_modes = ["List", "Report", "Kanban"];
+  const nativeViews = {
+    List: { condition: true, submenu: () => ["Saved layout"] },
+    Report: { condition: true, submenu: [{ label: "Saved report" }] },
+    Kanban: { condition: true, submenu: () => ["Saved board"] },
+  };
+  class NestedSelector {
+    constructor(options) {
+      Object.assign(this, options);
+      this.set_current_view();
+      this.make_switcher();
+    }
+    set_current_view() {
+      this.current_view = this.routeView;
+    }
+    make_switcher() {
+      this.caption = this.get_trigger_label();
+    }
+    get_trigger_label() {
+      return this.variant || this.label_map[this.current_view];
+    }
+    get_views() {
+      return nativeViews;
+    }
+    get_view_options() {
+      const views = this.get_views();
+      return frappeObject.views.view_modes.flatMap((view) => {
+        const config = views[view];
+        if (!config?.condition) return [];
+        const item = { label: this.label_map[view] };
+        if (config.submenu) item.submenu = config.submenu;
+        else if (view !== this.current_view) item.onclick = config.action;
+        if (view === this.current_view) item.selected = true;
+        return [item];
+      });
+    }
+    set_route(view) {
+      this.routedTo = view;
+    }
+  }
+  frappeObject.views.ListViewSelect = NestedSelector;
+  const labels = { List: "List View", Report: "Report View", Kanban: "Kanban View" };
+  const create = (view, routeView = view, options = {}) =>
+    new NestedSelector({
+      list_view: { view_name: view }, routeView, label_map: labels, doctype: "ToDo", ...options,
+    });
+  return { frappeObject, labels, nativeViews, create, proto: NestedSelector.prototype };
+}
+
+test("nested selector registers Split without the removed setup_views API", (t) => {
+  const { frappeObject, labels, nativeViews, create, proto } = nestedSelectorFixture(t);
+  assert.equal(proto.setup_views, undefined);
+  assert.equal(proto.add_view_to_menu, undefined);
+  assert.equal(compatibilityStatus(frappeObject).valid, true);
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+  const methods = [proto.set_current_view, proto.get_views, proto.get_view_options];
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+  assert.deepEqual([proto.set_current_view, proto.get_views, proto.get_view_options], methods);
+  for (const view of ["List", "Report", "Kanban"]) {
+    const selector = create(view, view, { variant: `Saved ${view}` });
+    assert.equal(selector.caption, `Saved ${view}`);
+    const entries = selector.get_view_options();
+    for (const native of Object.keys(nativeViews)) {
+      const item = entries.find((entry) => entry.label === labels[native]);
+      assert.equal(item.submenu, nativeViews[native].submenu);
+      assert.equal(Boolean(item.selected), native === view);
+    }
+    const split = entries.filter((entry) => entry.label === "translated:Split View");
+    assert.equal(split.length, 1);
+    assert.equal(split[0].selected, undefined);
+    split[0].onclick();
+    assert.equal(selector.routedTo, "split");
+  }
+  assert.equal(labels.Split, undefined);
+  assert.equal(nativeViews.Split, undefined);
+  assert.deepEqual(frappeObject.views.view_modes, ["List", "Report", "Kanban", "Split"]);
+  assert.deepEqual(frappeObject.router.list_views, ["list", "split"]);
+  assert.equal(frappeObject.router.list_views_route.split, "Split");
+});
+
+test("nested selector labels document-led Split before constructing its trigger", (t) => {
+  const { frappeObject, create } = nestedSelectorFixture(t);
+  assert.equal(installSelectorCompatibility(frappeObject).valid, true);
+  for (const routeView of ["Split", "List", "Report"]) {
+    const selector = create("Split", routeView);
+    assert.equal(selector.current_view, "Split");
+    assert.equal(selector.caption, "translated:Split View");
+    const options = selector.get_view_options();
+    const split = options.filter((entry) => entry.label === "translated:Split View");
+    assert.equal(split.length, 1);
+    assert.equal(split[0].selected, true);
+    assert.equal(split[0].onclick, undefined);
+    assert.equal(options.filter((entry) => entry.selected).length, 1);
+  }
+  assert.equal(create("List", "List", { doctype: "File" }).get_views().Split.condition, false);
+});
+
+test("incomplete nested selector fails closed even if legacy helpers remain", (t) => {
+  const { frappeObject, proto } = nestedSelectorFixture(t);
+  proto.setup_views = () => {};
+  proto.add_view_to_menu = () => {};
+  for (const method of ["set_current_view", "get_views", "get_view_options", "get_trigger_label"]) {
+    const original = proto[method];
+    proto[method] = undefined;
+    const defaults = frappeObject.model.set_default_views_for_doctype;
+    assert.equal(installSelectorCompatibility(frappeObject).valid, false, method);
+    assert.equal(frappeObject.model.set_default_views_for_doctype, defaults);
+    assert.deepEqual(frappeObject.router.list_views, ["list"]);
+    assert.deepEqual(frappeObject.views.view_modes, ["List", "Report", "Kanban"]);
+    proto[method] = original;
+  }
+});
+
 function selectorFixture(t) {
   const previousTranslate = globalThis.__;
   globalThis.__ = (text) => `translated:${text}`;

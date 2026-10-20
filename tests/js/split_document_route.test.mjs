@@ -179,6 +179,47 @@ test("document context precedes render; commit keeps one list and records histor
   assert.equal(list.data, data);
 });
 
+test("rehydrating a marked document never adds history for a native URL normalization", () => {
+  const { controller, f, browser, entries } = fixture();
+  controller.commit(controller.begin("A"));
+  controller.commit(controller.begin("B"));
+  // Simulate the router spelling the same URL with its new sidebar shell on reload.
+  browser.history.replaceState(browser.history.state, "", "/desk/build/todo/B?split_view=1");
+  const previous = controller.begin("B");
+  browser.history.replaceState(browser.history.state, "", "/desk/todo/B?split_view=1#details");
+  controller.commit(previous);
+  assert.equal(entries.length, 3);
+  assert.equal(controller.index, 2);
+  assert.deepEqual(f.get_route(), ["Form", "ToDo", "B"]);
+  browser.history.go(-1);
+  assert.equal(browser.location.pathname, "/desk/todo/A");
+});
+
+test("history writes synchronize native shell context on open, rollback and Close", () => {
+  const { controller, f, browser, entries } = fixture();
+  f.router.current_shell = "Build";
+  f.router.take_shell_from = (parts) => {
+    f.router.current_shell = parts[0] === "build" ? "Build" : null;
+  };
+  f.router.write_shell_into_url = () => {
+    if (f.router.current_shell) return;
+    browser.history.replaceState(browser.history.state, "",
+      browser.location.href.replace("/desk/", "/desk/build/"));
+    f.router.current_shell = "Build";
+  };
+  controller.commit(controller.begin("A"));
+  assert.equal(browser.location.pathname, "/desk/build/todo/A");
+  assert.equal(f.router.current_sub_path, "build/todo/A");
+  const previous = controller.begin("missing");
+  controller.rollback(previous);
+  assert.equal(browser.location.pathname, "/desk/build/todo/A");
+  controller.commit(controller.begin("A"));
+  assert.equal(entries.length, 2, "reload must not duplicate the selected document");
+  controller.close();
+  assert.equal(browser.location.pathname, "/desk/build/todo/view/split");
+  assert.equal(f.router.current_shell, "Build");
+});
+
 test("failed activation restores URL, Frappe context and history without an extra entry", () => {
   const { controller, f, browser, entries } = fixture();
   controller.commit(controller.begin("A"));

@@ -1,8 +1,58 @@
 # SPDX-License-Identifier: MIT
-"""Release-PoC fixtures used only by the optional ERPNext browser CI job."""
+"""POC fixtures for disposable Frappe/ERPNext browser CI sites only."""
 
 import frappe
 from frappe.utils.nestedset import get_root_of
+
+
+def setup_child_grid_poc() -> None:
+    """Create a custom parent/child pair without changing any stock DocType."""
+    if not frappe.conf.allow_tests:
+        frappe.throw("Enable allow_tests on a disposable site before creating browser fixtures")
+    if not frappe.db.exists("DocType", "Split View POC Row"):
+        frappe.get_doc(
+            {
+                "doctype": "DocType",
+                "name": "Split View POC Row",
+                "module": "Custom",
+                "custom": 1,
+                "istable": 1,
+                # Frappe intentionally skips row templates for inline-editable grids.
+                "editable_grid": 0,
+                "fields": [
+                    {"fieldname": "description", "label": "Description", "fieldtype": "Data"},
+                ],
+            }
+        ).insert()
+    if not frappe.db.exists("DocType", "Split View POC Parent"):
+        frappe.get_doc(
+            {
+                "doctype": "DocType",
+                "name": "Split View POC Parent",
+                "module": "Custom",
+                "custom": 1,
+                "autoname": "hash",
+                "title_field": "title",
+                "fields": [
+                    {
+                        "fieldname": "title",
+                        "label": "Title",
+                        "fieldtype": "Data",
+                        "reqd": 1,
+                        "in_list_view": 1,
+                    },
+                    {"fieldname": "action_count", "label": "Actions", "fieldtype": "Int"},
+                    {
+                        "fieldname": "items",
+                        "label": "Items",
+                        "fieldtype": "Table",
+                        "options": "Split View POC Row",
+                    },
+                ],
+                "permissions": [{"role": "System Manager", "read": 1, "write": 1, "create": 1}],
+            }
+        ).insert()
+    frappe.db.commit()
 
 
 def setup_erpnext_project_poc() -> str:
