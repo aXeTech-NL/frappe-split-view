@@ -29,16 +29,7 @@ context("Split View ToDo POC", () => {
     cy.visit("/desk/todo/view/list");
     cy.assert_split_view_selector("List");
     for (const view of ["Split", "List", "Split"]) {
-      cy.window().then((win) => {
-        const menu = win.cur_list.views_menu;
-        cy.wrap(menu.closest(".custom-btn-group"))
-          .find("[data-toggle='dropdown']")
-          .click();
-        cy.wrap(menu)
-          .find(`[data-view='${view}']`)
-          .should("be.visible")
-          .click();
-      });
+      cy.select_split_view(view);
       cy.location("pathname").should(
         "eq",
         `/desk/todo/view/${view.toLowerCase()}`,
@@ -49,8 +40,7 @@ context("Split View ToDo POC", () => {
 
   it("registers Split and reuses one real stock Form", () => {
     cy.visit("/desk/todo/view/list");
-    cy.get(".custom-btn-group [data-toggle='dropdown']").first().click();
-    cy.get("[data-view='Split']").should("be.visible").click();
+    cy.select_split_view("Split");
     cy.location("pathname").should("eq", "/desk/todo/view/split");
     cy.get("[data-frappe-split-view]")
       .should("have.attr", "data-doctype", "ToDo")

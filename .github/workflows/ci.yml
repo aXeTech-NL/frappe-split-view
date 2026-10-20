@@ -40,9 +40,19 @@ jobs:
         uses: pre-commit/action@v3.0.1
 
   bench:
-    name: Clean Frappe v16 Bench and ToDo browser POC
+    name: ${{ matrix.environment.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - name: Clean Frappe v16 Bench and ToDo browser POC
+            tag: v16.31.0
+            commit: 6a329d068416768ec47ccd3326b9cc95a8d7bf99
+          - name: Frappe v16.52.0 Bench and ToDo browser POC
+            tag: v16.52.0
+            commit: 4515014c87ece6cb20ee91d2cfb121c5cbd1ff4a
     services:
       mariadb:
         image: mariadb:11.8
@@ -78,8 +88,10 @@ jobs:
       - uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd
         id: setup-chrome
       - name: Initialize pinned Frappe v16 Bench
+        env:
+          FRAPPE_TAG: ${{ matrix.environment.tag }}
         run: >-
-          bench init --frappe-branch v16.31.0 --python "$(which python)"
+          bench init --frappe-branch "$FRAPPE_TAG" --python "$(which python)"
           --skip-assets --skip-redis-config-generation frappe-bench
       - name: Configure services and create site
         working-directory: frappe-bench
@@ -92,8 +104,10 @@ jobs:
           bench --site ci.test set-config allow_tests true
       - name: Install, build, migrate, and test app
         working-directory: frappe-bench
+        env:
+          FRAPPE_COMMIT: ${{ matrix.environment.commit }}
         run: |
-          test "$(git -C apps/frappe rev-parse HEAD)" = "6a329d068416768ec47ccd3326b9cc95a8d7bf99"
+          test "$(git -C apps/frappe rev-parse HEAD)" = "$FRAPPE_COMMIT"
           bench get-app --skip-assets "$GITHUB_WORKSPACE/frappe-split-view"
           bench --site ci.test install-app frappe_split_view
           CI=Yes bench build --force
@@ -109,6 +123,7 @@ jobs:
           echo "127.0.0.1 ci.test" | sudo tee -a /etc/hosts
           bench --site ci.test execute frappe.utils.install.complete_setup_wizard
           bench --site ci.test execute frappe.tests.ui_test_helpers.create_test_user
+          bench --site ci.test execute frappe_split_view.tests.ui_test_helpers.setup_child_grid_poc
           bench serve --port 8000 > /tmp/frappe-bench.log 2>&1 &
           ready=0
           for attempt in $(seq 1 60); do
@@ -117,12 +132,12 @@ jobs:
           done
           if [ "$ready" -ne 1 ]; then echo "Frappe web server did not become ready"; cat /tmp/frappe-bench.log; exit 1; fi
           bench --site ci.test run-ui-tests frappe_split_view --headless --browser "${{ steps.setup-chrome.outputs.chrome-path }}" \
-            --spec frappe_split_view/public/js/ui_test_split_view.js
+            --spec 'frappe_split_view/public/js/ui_test_split_view{,_grid}.js'
       - name: Upload browser diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: frappe-todo-browser-diagnostics
+          name: frappe-todo-browser-diagnostics-${{ matrix.environment.tag }}
           path: |
             /tmp/frappe-bench.log
             frappe-bench/logs
