@@ -17,6 +17,8 @@ def setup_child_grid_poc() -> None:
                 "module": "Custom",
                 "custom": 1,
                 "istable": 1,
+                # Frappe intentionally skips row templates for inline-editable grids.
+                "editable_grid": 0,
                 "fields": [
                     {"fieldname": "description", "label": "Description", "fieldtype": "Data"},
                 ],

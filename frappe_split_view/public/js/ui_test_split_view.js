@@ -253,7 +253,7 @@ context("Split View ToDo POC", () => {
       await win.frappe.views.ListView.prototype.refresh.call(win.cur_list);
     });
     cy.get("[data-split-view-list] .list-paging-area")
-      .contains("button", /^20$/).then(($button) => {
+      .contains("button", /^\s*20\s*$/).then(($button) => {
         // Legacy buttons are disabled when active; v16.52 uses native radio pills.
         if (!$button.prop("disabled") && $button.attr("aria-checked") !== "true") {
           cy.wrap($button).click();
@@ -285,7 +285,7 @@ context("Split View ToDo POC", () => {
       ).to.eq(150);
     });
     cy.get("[data-split-view-list] .list-paging-area")
-      .contains("button", /^20$/).should(($button) => {
+      .contains("button", /^\s*20\s*$/).should(($button) => {
         expect($button.hasClass("btn-info") || $button.attr("aria-checked") === "true").to.eq(true);
       });
   });
