@@ -63,8 +63,21 @@ Cypress.Commands.add("assert_split_view_selector", (view = "Split") => {
   });
 });
 
+Cypress.Commands.add("assert_split_path", (path) => {
+  cy.window().should((win) => {
+    const router = win.frappe.router;
+    const shell = router.current_shell;
+    const scoped = shell && router.shell_slug
+      ? path.replace("/desk/", `/desk/${router.shell_slug(shell)}/`)
+      : path;
+    expect(win.location.pathname).to.be.oneOf([path, scoped]);
+  });
+});
+
 Cypress.Commands.add("select_split_view", (view) => {
-  cy.window().then((win) => {
+  cy.window().should((win) => {
+    expect(win.cur_list?.views_list, "view selector is ready").to.exist;
+  }).then((win) => {
     const selector = win.cur_list.views_list;
     if (selector.$trigger) {
       cy.wrap(selector.$trigger).click();

@@ -30,10 +30,7 @@ context("Split View ToDo POC", () => {
     cy.assert_split_view_selector("List");
     for (const view of ["Split", "List", "Split"]) {
       cy.select_split_view(view);
-      cy.location("pathname").should(
-        "eq",
-        `/desk/todo/view/${view.toLowerCase()}`,
-      );
+      cy.assert_split_path(`/desk/todo/view/${view.toLowerCase()}`);
       cy.assert_split_view_selector(view);
     }
   });
@@ -41,7 +38,7 @@ context("Split View ToDo POC", () => {
   it("registers Split and reuses one real stock Form", () => {
     cy.visit("/desk/todo/view/list");
     cy.select_split_view("Split");
-    cy.location("pathname").should("eq", "/desk/todo/view/split");
+    cy.assert_split_path("/desk/todo/view/split");
     cy.get("[data-frappe-split-view]")
       .should("have.attr", "data-doctype", "ToDo")
       .within(() => {
@@ -75,9 +72,6 @@ context("Split View ToDo POC", () => {
         owner.frm.page,
       );
       expect(win.frappe.get_route()).to.deep.eq(["Form", "ToDo", first]);
-      expect(win.location.pathname).to.eq(
-        `/desk/todo/${encodeURIComponent(first)}`,
-      );
       expect(new URLSearchParams(win.location.search).get("split_view")).to.eq(
         "1",
       );
@@ -229,13 +223,10 @@ context("Split View ToDo POC", () => {
       "be.visible",
     );
     cy.get("[data-split-close]").click();
-    cy.location("pathname").should("eq", "/desk/todo/view/split");
+    cy.assert_split_path("/desk/todo/view/split");
     // Reopening the same record after Close must re-enter document context.
     cy.window().then((win) => win.cur_list.activateRecord(second));
-    cy.location("pathname").should(
-      "eq",
-      `/desk/todo/${encodeURIComponent(second)}`,
-    );
+    cy.assert_split_path(`/desk/todo/${encodeURIComponent(second)}`);
     cy.window().should((win) => expect(win.cur_frm.docname).to.eq(second));
   });
 
@@ -261,13 +252,13 @@ context("Split View ToDo POC", () => {
       win.cur_list.filter_area.debounced_refresh_list_view.cancel();
       await win.frappe.views.ListView.prototype.refresh.call(win.cur_list);
     });
-    cy.get("[data-split-view-list] .btn-paging[data-value='20']").then(
-      ($button) => {
-        // Headless Chrome may already use Frappe's 20-row default. An active
-        // paging button is intentionally disabled; do not force-click it.
-        if (!$button.prop("disabled")) cy.wrap($button).click();
-      },
-    );
+    cy.get("[data-split-view-list] .list-paging-area")
+      .contains("button", /^20$/).then(($button) => {
+        // Legacy buttons are disabled when active; v16.52 uses native radio pills.
+        if (!$button.prop("disabled") && $button.attr("aria-checked") !== "true") {
+          cy.wrap($button).click();
+        }
+      });
     cy.window().should((win) => {
       expect(win.cur_list.data).to.have.length(20);
       expect(
@@ -293,10 +284,10 @@ context("Split View ToDo POC", () => {
         win.cur_list.$frappe_list.find(".result-container").get(0).scrollTop,
       ).to.eq(150);
     });
-    cy.get("[data-split-view-list] .btn-paging[data-value='20']").should(
-      "have.class",
-      "btn-info",
-    );
+    cy.get("[data-split-view-list] .list-paging-area")
+      .contains("button", /^20$/).should(($button) => {
+        expect($button.hasClass("btn-info") || $button.attr("aria-checked") === "true").to.eq(true);
+      });
   });
 
   it("opens a marked document deep link without saved list state", () => {
@@ -329,9 +320,7 @@ context("Split View ToDo POC", () => {
         `${marker}-dirty-route`,
       );
       expect(await win.frappe.set_route("Form", "ToDo", second)).to.eq(false);
-      expect(win.location.pathname).to.eq(
-        `/desk/todo/${encodeURIComponent(first)}`,
-      );
+      expect(win.frappe.get_route()).to.deep.eq(["Form", "ToDo", first]);
       expect(win.frappe_split_view.debug.owner.frm.docname).to.eq(first);
       expect(await win.cur_list.splitFormAdapter.save()).to.eq(true);
       return win.frappe.set_route("Form", "ToDo", second);

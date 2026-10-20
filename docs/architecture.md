@@ -31,7 +31,10 @@ custom view-selector hook and Form has no symmetric teardown API.
 The entry route remains `/desk/<doctype>/view/split`. Selecting an existing record changes the URL
 to `/desk/<doctype>/<name>?split_view=1` and Frappe's route to `Form/<doctype>/<name>` **before**
 Form loading and client hooks. The Form Page owns `frappe.ui.pages[current_route]`, `cur_frm` points
-to that Form, and the browser title and body route identify the document. The existing Split page
+to that Form, and the browser title and body route identify the document. On v16.52, Split's history writes also
+synchronize the router's sidebar-shell context, preserving native `/desk/<shell>/...` URLs.
+Rehydrating the same marked document never pushes another entry merely because native rendering
+normalizes its shell prefix or active-tab hash. The existing Split page
 remains the physical Desk container; no second Form or List is constructed. The stock list toolbar
 and filters keep their native full-width positions above both panes. Only the list results/paging
 move into the left pane; document-specific controls remain inside the right pane.

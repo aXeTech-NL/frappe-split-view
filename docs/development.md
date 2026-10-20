@@ -64,8 +64,10 @@ header/filter geometry above the panes, with document controls still on the righ
 "Split View" selector caption. ToDo also checks Split/List round trips, a custom header action,
 divider resizing, Close, reload and deep-link entry. Selector helpers use the actual legacy dropdown
 or nested-menu UI, including List's Default Layout submenu. The child-grid spec supplies a test
-`__form_grid_templates` entry before constructing a real Form, checks its escaped cards and refresh
-hook, saves a scripted action, and switches records without replacing the Form. It does not mock
+`__form_grid_templates` entry and client script through the metadata load response before constructing
+a real Form, checks its escaped cards and refresh hook, saves a scripted action, and switches records
+without replacing the Form. Route checks allow the native sidebar-shell prefix; paging checks cover
+legacy buttons and v16.52 radio pills. It does not mock
 Form or Grid as runtime proof.
 
 Dependency-free route/adapter tests cover compound filters, paging/scroll snapshots, disabled

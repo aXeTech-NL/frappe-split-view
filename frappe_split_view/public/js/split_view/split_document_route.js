@@ -164,6 +164,16 @@ export class SplitDocumentRoute {
   setContext(route) {
     const f = this.frappe;
     f.router.current_route = route;
+    // v16.52 spells routes with a sidebar-shell prefix. Our history writes
+    // bypass router.route(), so synchronize its shell context before it can
+    // interpret an unprefixed document URL as though it still had a shell.
+    if (
+      typeof f.router.take_shell_from === "function" &&
+      typeof f.router.write_shell_into_url === "function"
+    ) {
+      f.router.take_shell_from(f.router.get_sub_path().split("/"));
+      f.router.write_shell_into_url();
+    }
     f.router.current_sub_path = f.router.get_sub_path();
     this.browser.document.body.setAttribute("data-route", route.join("/"));
     const page =
@@ -192,7 +202,13 @@ export class SplitDocumentRoute {
 
   commit(previous) {
     const url = this.browser.location.href;
-    if (previous.url !== url) {
+    const route = this.frappe.get_route();
+    const restoringDocument =
+      isSplitDocumentRoute(previous.route, new URL(previous.url).search) &&
+      previous.route.join("/") === route.join("/");
+    // Rehydrating the same marked document must not add history, even when
+    // native rendering canonicalizes a shell prefix or the active tab hash.
+    if (previous.url !== url && !restoringDocument) {
       this.browser.history.replaceState(previous.state, "", previous.url);
       this.browser.history.pushState(previous.state, "", url);
       this.index += 1;

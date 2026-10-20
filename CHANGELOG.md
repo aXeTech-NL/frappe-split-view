@@ -22,6 +22,9 @@ All notable changes to this project will be documented in this file. The format 
 - Split View no longer disables itself on Frappe v16.52.0 because `setup_views()` was removed.
   Its menu entry, Default View option and document-led selector label are restored without
   replacing the embedded Form with the native read-only report preview.
+- Split-controlled history writes now synchronize v16.52's sidebar-shell URL context. Rehydrating
+  the same document no longer adds a duplicate entry when its prefix or tab hash is normalized,
+  so Back/Forward can reach the previously selected document after a reload.
 
 ### Compatibility
 
