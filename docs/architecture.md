@@ -59,15 +59,29 @@ restored on completion. A timed-out Form cannot be safely reused and requires a 
 Form Page registration is preserved on document routes so asynchronous hooks see Form context.
 Construction/refresh still preserve the outer container and body sidebar attribute. Show/hide events
 manage `cur_frm`; Close hides the persistent Form rather than destroying its global listeners.
+
+While a successfully loaded document is active, the retained Split shell also exposes that same
+Form through the native `frappe.container.page.frm` contract. A scoped getter checks the active
+page, visible owner, exact route/document identity and completed loading state on every read.
+It is removed during loading, Close, hide, hard navigation and unsafe fallback, and restored after
+a successful open/show or safe rollback. It neither replaces another owner's `frm` property nor
+removes a native reassignment. This lets integrated Flow's `read_screen` recognize a Form instead
+of falling back to the retained list; no Flow patch or automatic context upload is involved.
+Full physical Form ownership of the Desk container (issue #15) remains a separate work item.
 Arbitrary client hooks that outlive Frappe's own lifecycle are not supported.
 
 ## List state
 
 Snapshots contain complete filter tuples (including child-table filters), sort field/direction,
 loaded row capacity, paging batch size, and both list-pane and result-container scroll offsets.
-Snapshots are stored in browser history plus user/DocType-scoped `sessionStorage`. No document field
-values are stored. Divider width alone remains in `localStorage`. Disabled session storage falls
-back to history state; a copied link intentionally does not carry private filters or row data.
+Snapshots are stored in browser history plus user/DocType-scoped `sessionStorage`. Fetched document
+bodies are not stored, but filter values can themselves contain sensitive data. Divider width is
+stored in `localStorage`; separately, native-style new-tab navigation passes route options through
+origin-wide `localStorage.route_options`, while same-tab route options can appear in URL query
+parameters. Do not put credentials or secrets in filters or route options. User-scoped restoration
+is not encryption or isolation from other scripts on the same origin. Disabled session storage
+falls back to history state; a copied split-document link intentionally does not carry the list
+snapshot or row data.
 
 Restore applies list settings before the first fetch and scroll after rendering. Changing documents
 does not refresh or reconstruct the list. Filter changes never replace a document URL with list

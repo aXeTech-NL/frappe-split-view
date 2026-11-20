@@ -57,6 +57,8 @@ def setup_child_grid_poc() -> None:
 
 def setup_erpnext_project_poc() -> str:
     """Create the minimum Company fixture and mark installed-app setup state current."""
+    if not frappe.conf.allow_tests:
+        frappe.throw("Enable allow_tests on a disposable site before creating browser fixtures")
     if "erpnext" not in frappe.get_installed_apps():
         frappe.throw("ERPNext must be installed before creating the Project POC fixture")
 
