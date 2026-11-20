@@ -110,6 +110,67 @@ export class SplitFormAdapter {
     return Boolean(this.frm?.is_dirty?.());
   }
 
+  publishPageForm() {
+    this.releasePageForm();
+    const page = this.listView.parent;
+    if (
+      !page ||
+      !this.frm ||
+      !this.detailOpen ||
+      !this.selectedName ||
+      this.formUnusable ||
+      !this.isActiveOwner() ||
+      Object.getOwnPropertyDescriptor(page, "frm")
+    )
+      return;
+    // The Split shell remains the physical Desk page. Expose its active Form
+    // through the native page.frm contract without moving/replacing that page.
+    // Resolve on every read: a cached page or a tentative route must never
+    // present the previous record as the newly selected one.
+    const get = () => {
+      const route = frappe.get_route();
+      return this.isActiveOwner() &&
+        frappe.container?.page === page &&
+        this.detailOpen &&
+        !this.formUnusable &&
+        !this.pendingRoute &&
+        route[0] === "Form" &&
+        route[2] === this.selectedName &&
+        this.frm?.doctype === this.doctype &&
+        this.frm.docname === this.selectedName &&
+        this.frm.doc?.doctype === this.doctype &&
+        this.frm.doc.name === this.selectedName
+        ? this.frm
+        : undefined;
+    };
+    Object.defineProperty(page, "frm", {
+      configurable: true,
+      enumerable: true,
+      get,
+      set: (value) => {
+        if (value === this.frm) return;
+        // Respect a native owner taking over; cleanup must not remove its value.
+        Object.defineProperty(page, "frm", {
+          configurable: true,
+          enumerable: true,
+          writable: true,
+          value,
+        });
+      },
+    });
+    this.pageFormBinding = { page, get };
+  }
+
+  releasePageForm() {
+    const binding = this.pageFormBinding;
+    if (
+      binding &&
+      Object.getOwnPropertyDescriptor(binding.page, "frm")?.get === binding.get
+    )
+      delete binding.page.frm;
+    this.pageFormBinding = null;
+  }
+
   guardDirty() {
     if (!this.isDirty()) return true;
     showBlockedMessage();
@@ -174,6 +235,7 @@ export class SplitFormAdapter {
     const generation = ++this.generation;
     let previousRoute;
     this.host.classList.add("split-view-detail-loading");
+    this.releasePageForm();
     try {
       previousRoute = this.listView.documentRoute.begin(name);
       this.pendingRoute = previousRoute;
@@ -244,8 +306,10 @@ export class SplitFormAdapter {
       return false;
     } finally {
       if (this.pendingRoute === previousRoute) this.pendingRoute = null;
-      if (generation === this.generation)
+      if (generation === this.generation) {
         this.host.classList.remove("split-view-detail-loading");
+        this.publishPageForm();
+      }
     }
   }
 
@@ -394,6 +458,7 @@ export class SplitFormAdapter {
   }
 
   cancelPendingOpen() {
+    this.releasePageForm();
     this.openEpoch += 1;
     this.listView.documentRoute.rollback(this.pendingRoute);
     this.pendingRoute = null;
@@ -412,6 +477,7 @@ export class SplitFormAdapter {
   }
 
   hide() {
+    this.releasePageForm();
     this.pageVisible = false;
     if (this.frm && this.detailOpen) $(this.host).trigger("hide");
     if (window.cur_frm === this.frm) window.cur_frm = null;
@@ -422,6 +488,7 @@ export class SplitFormAdapter {
     if (this.frm && this.selectedName && this.detailOpen) {
       window.cur_frm = this.frm;
       $(this.host).trigger("show");
+      this.publishPageForm();
     }
   }
 
@@ -436,6 +503,7 @@ export class SplitFormAdapter {
   }
 
   renderFallback(name, reason) {
+    this.releasePageForm();
     // A Form whose host was replaced cannot safely be refreshed again.
     this.formUnusable = Boolean(this.frm);
     if (window.cur_frm === this.frm) window.cur_frm = null;

@@ -6,6 +6,23 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+### Fixed
+
+- Expose the active, fully loaded Split Form through `frappe.container.page.frm` so integrated
+  Flow can read its on-screen fields and unsaved status instead of only the retained list's filters.
+  Withdraw context on Close, hide, loading, navigation and unsafe failures; preserve dirty guards,
+  rollback, native ownership and the existing single-Form/list container lifecycle.
+
+### Security
+
+- Require `allow_tests` before the ERPNext browser fixture can read or change site data, matching
+  the existing child-grid fixture guard. These helpers remain non-whitelisted, Bench-only fixtures.
+- Default release-workflow permissions to read-only; grant repository writes only to the final
+  release-publication job.
+- Clarify browser retention of filter values and native-style route options. No confirmed
+  exploitable vulnerability was found in the bounded source review; this is not a penetration test
+  or a production-security guarantee.
+
 ## [16.2.2] - 2026-10-20
 
 ### Highlights

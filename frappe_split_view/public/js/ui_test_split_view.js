@@ -68,6 +68,7 @@ context("Split View ToDo POC", () => {
       expect(owner.frm).to.be.instanceOf(win.frappe.ui.form.Form);
       expect(owner.frm.docname).to.eq(first);
       expect(win.frappe.container.page).to.eq(win.cur_list.parent);
+      expect(win.frappe.container.page.frm).to.eq(owner.frm);
       expect(win.frappe.ui.pages[win.frappe.get_route_str()]).to.eq(
         owner.frm.page,
       );
@@ -101,6 +102,11 @@ context("Split View ToDo POC", () => {
         win.__splitFormIdentity,
       );
       expect(win.__splitFormIdentity.docname).to.eq(second);
+      expect(win.frappe.container.page.frm).to.eq(win.__splitFormIdentity);
+      win.cur_list.page.wrapper.trigger("hide");
+      expect(win.cur_list.parent.frm).to.eq(undefined);
+      win.cur_list.page.wrapper.trigger("show");
+      expect(win.frappe.container.page.frm).to.eq(win.__splitFormIdentity);
     });
     cy.assert_split_header_layout();
 
@@ -155,11 +161,13 @@ context("Split View ToDo POC", () => {
       await win.__splitFormIdentity.set_value("priority", savedPriority);
       expect(await win.cur_list.splitFormAdapter.save()).to.eq(true);
       expect(win.cur_list.closeDetail()).to.eq(true);
+      expect(win.cur_list.parent.frm).to.eq(undefined);
       win.cur_list.page.wrapper.trigger("hide");
       expect(win.cur_frm).to.eq(null);
       win.cur_list.page.wrapper.trigger("show");
       expect(win.cur_frm).to.eq(null);
       expect(win.cur_list.splitFormAdapter.detailOpen).to.eq(false);
+      expect(win.cur_list.parent.frm).to.eq(undefined);
     });
     cy.assert_split_header_layout();
   });
