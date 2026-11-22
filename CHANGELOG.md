@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [16.2.3] - 2026-11-22
+
+### Highlights
+
+- Integrated Flow can read the currently open Split Form on demand; no new endpoint or automatic
+  context upload is added.
+
+### Added
+
+- Regression tests for active Form identity, lifecycle cleanup, dirty navigation and native takeover.
+
+### Changed
+
+- CI runs the existing ToDo and child-grid specs in separate browser processes on both Frappe pins.
+
 ### Fixed
 
 - Expose the active, fully loaded Split Form through `frappe.container.page.frm` so integrated
@@ -22,6 +37,19 @@ All notable changes to this project will be documented in this file. The format 
 - Clarify browser retention of filter values and native-style route options. No confirmed
   exploitable vulnerability was found in the bounded source review; this is not a penetration test
   or a production-security guarantee.
+
+### Compatibility
+
+- Required CI: Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`),
+  `v16.52.0` (`4515014c87ece6cb20ee91d2cfb121c5cbd1ff4a`) and ERPNext `v16.32.0`
+  (`81a6f97566b83609c3917404a560b673050e907d`) on Frappe `v16.31.0`.
+- Integrated Flow screen reading was checked locally on Frappe `v16.60.2`. The app remains an
+  experimental v16 POC; this does not establish generic DocType or ERPNext compatibility.
+
+### Upgrade notes
+
+- Update from the immutable `v16.2.3` tag, run Bench migrate, build `frappe_split_view` assets,
+  restart the Bench processes and reload Desk. No new site settings or Flow roles are needed.
 
 ## [16.2.2] - 2026-10-20
 

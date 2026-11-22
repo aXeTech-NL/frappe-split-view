@@ -131,8 +131,12 @@ jobs:
             sleep 2
           done
           if [ "$ready" -ne 1 ]; then echo "Frappe web server did not become ready"; cat /tmp/frappe-bench.log; exit 1; fi
-          bench --site ci.test run-ui-tests frappe_split_view --headless --browser "${{ steps.setup-chrome.outputs.chrome-path }}" \
-            --spec 'frappe_split_view/public/js/ui_test_split_view{,_grid}.js'
+          # Keep both specs mandatory, but start a fresh browser for each. The pinned
+          # Cypress runner fails at the multi-spec handoff with newer Chrome versions.
+          for spec in ui_test_split_view.js ui_test_split_view_grid.js; do
+            bench --site ci.test run-ui-tests frappe_split_view --headless --browser "${{ steps.setup-chrome.outputs.chrome-path }}" \
+              --spec "frappe_split_view/public/js/$spec" || exit 1
+          done
       - name: Upload browser diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
