@@ -2,6 +2,7 @@
 
 | App version | Declared Frappe version | Exact inspected reference | Status |
 | --- | --- | --- | --- |
+| `16.2.3` | `>=16.0.0,<17.0.0` | Same CI pins as `16.2.2`; local Flow reader verification on `v16.60.2` (below) | Experimental |
 | `16.2.2` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) and `v16.52.0` (`4515014c87ece6cb20ee91d2cfb121c5cbd1ff4a`) | Experimental; see CI results for this ref |
 | `16.2.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
 | `16.2.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | Technical POC / experimental |
@@ -39,15 +40,15 @@ The ERPNext reference inspected for the alpha is `v16.32.0`
 (`81a6f97566b83609c3917404a560b673050e907d`). ERPNext is not a Python/package dependency. A passing
 Project spec is evidence for that environment only, not general ERPNext compatibility.
 
-## Unreleased Flow screen-context verification
+## 16.2.3 Flow screen-context verification
 
 The `page.frm` compatibility fix was locally built and exercised on Frappe v16.60.2
 (`2df0425571ebbaed878eabc3edc5b7e7c3327ae0`). Its unmodified Flow client screen reader recognizes
 the active Split Form for Project, File Conversion, Requirement and Requirement Analysis in
 Workbench, using existing engineer and reader accounts. Hide/show, Close/reopen, record switching,
 client-only dirty flags and dirty-close guards were checked without document saves or model calls.
-The physical Split/List container is unchanged. This is bounded local evidence, not a new published
-release or a substitute for rerunning the pinned clean ToDo/ERPNext CI jobs. See the
+The physical Split/List container is unchanged. This local check complements, but does not replace,
+the pinned clean ToDo/ERPNext CI jobs. See the
 [security review](security-review-2026-11-20.md) for scope and remaining hardening.
 
 ## Supported POC envelope

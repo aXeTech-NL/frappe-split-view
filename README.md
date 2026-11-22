@@ -7,7 +7,7 @@ standard v16 view selector, keeps the stock ListView mounted on the left, and mo
 stock `frappe.ui.form.Form` for existing records of one DocType on the right. Opening a record makes
 its Form route and context authoritative; the list becomes the retained navigation pane.
 
-> `16.2.2` remains an experimental technical POC, not a production-readiness or generic
+> `16.2.3` remains an experimental technical POC, not a production-readiness or generic
 > compatibility claim. The major version identifies the compatible Frappe release line.
 
 ## What the POC proves
@@ -40,6 +40,7 @@ Stable browser-test attributes are `data-frappe-split-view`, `data-split-view-li
 
 | App version | Declared Frappe range | Inspected reference | Status |
 | --- | --- | --- | --- |
+| `16.2.3` | `>=16.0.0,<17.0.0` | Same CI pins as `16.2.2`; local Flow screen reader on `v16.60.2` | Experimental |
 | `16.2.2` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` and `v16.52.0` | Experimental; see CI results for this ref |
 | `16.2.1` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |
 | `16.2.0` | `>=16.0.0,<17.0.0` | Frappe `v16.31.0` (`6a329d068416768ec47ccd3326b9cc95a8d7bf99`) | POC / experimental |

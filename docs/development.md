@@ -41,9 +41,11 @@ bench --site split-view.test set-config allow_tests true
 bench --site split-view.test execute frappe.utils.install.complete_setup_wizard
 bench --site split-view.test execute frappe_split_view.tests.ui_test_helpers.setup_child_grid_poc
 bench serve --port 8000
-bench --site split-view.test run-ui-tests frappe_split_view \
-  --headless --browser "$(command -v google-chrome || command -v chromium)" \
-  --spec 'frappe_split_view/public/js/ui_test_split_view{,_grid}.js'
+for spec in ui_test_split_view.js ui_test_split_view_grid.js; do
+  bench --site split-view.test run-ui-tests frappe_split_view \
+    --headless --browser "$(command -v google-chrome || command -v chromium)" \
+    --spec "frappe_split_view/public/js/$spec" || break
+done
 ```
 
 Repeat with `--frappe-branch v16.52.0` to cover the new nested view selector. The custom parent/row
