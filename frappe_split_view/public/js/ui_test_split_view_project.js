@@ -77,6 +77,7 @@ context("Split View ERPNext Project POC", () => {
       const owner = win.frappe_split_view.debug.owner;
       expect(owner.frm).to.be.instanceOf(win.frappe.ui.form.Form);
       expect(owner.frm.docname).to.eq(first);
+      expect(win.frappe.container.page.frm).to.eq(owner.frm);
       win.__projectSplitForm = owner.frm;
     });
     cy.assert_split_header_layout();
@@ -90,6 +91,7 @@ context("Split View ERPNext Project POC", () => {
       );
       expect(win.__projectSplitForm.docname).to.eq(second);
       expect(win.frappe.container.page).to.eq(win.cur_list.parent);
+      expect(win.frappe.container.page.frm).to.eq(win.__projectSplitForm);
     });
     cy.assert_split_header_layout();
   });
@@ -123,6 +125,7 @@ context("Split View ERPNext Project POC", () => {
       const owner = win.frappe_split_view.debug.owner;
       expect(owner.frm).to.be.instanceOf(win.frappe.ui.form.Form);
       expect(owner.frm.docname).to.eq(department);
+      expect(win.frappe.container.page.frm).to.eq(owner.frm);
     });
 
     cy.visit("/desk/department/view/tree");

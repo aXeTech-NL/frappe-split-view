@@ -38,6 +38,7 @@ function setup(t) {
     dataset: {},
   };
   const list = {
+    parent: {},
     page: { wrapper: { is: () => true } },
     documentRoute: {
       begin(name) {
@@ -53,6 +54,7 @@ function setup(t) {
       },
     },
   };
+  f.container = { page: list.parent };
   const adapter = new SplitFormAdapter({
     doctype: "ToDo",
     host,
@@ -60,7 +62,7 @@ function setup(t) {
   });
   adapter.isSupported = () => ({ supported: true });
   adapter.ensureForm = () => {
-    adapter.frm ||= { is_dirty: () => dirty };
+    adapter.frm ||= { doctype: "ToDo", is_dirty: () => dirty };
   };
   adapter.refreshAndWait = async (name) => {
     assert.deepEqual(
@@ -69,6 +71,7 @@ function setup(t) {
       "hooks see the document route",
     );
     adapter.frm.docname = name;
+    adapter.frm.doc = { doctype: "ToDo", name };
   };
   return {
     adapter,
@@ -273,6 +276,141 @@ test("unsafe render failure quarantines the Form rather than starting a recovery
   assert.equal(await adapter.open("C"), false);
   assert.equal(refreshes, 1);
   assert.equal(adapter.formUnusable, true);
+});
+
+test("page.frm exposes only the active ready Split Form and is cleared on close/hide", async (t) => {
+  const { adapter, f, list } = setup(t);
+  assert.equal(Object.hasOwn(list.parent, "frm"), false);
+  await adapter.open("A");
+  assert.equal(
+    f.container.page,
+    list.parent,
+    "the physical container is not replaced",
+  );
+  assert.equal(f.container.page.frm, adapter.frm);
+  adapter.hide();
+  assert.equal(Object.hasOwn(list.parent, "frm"), false);
+  adapter.show();
+  assert.equal(f.container.page.frm, adapter.frm);
+  assert.equal(adapter.close(), true);
+  assert.equal(Object.hasOwn(list.parent, "frm"), false);
+  adapter.show();
+  assert.equal(
+    Object.hasOwn(list.parent, "frm"),
+    false,
+    "show must not reopen closed context",
+  );
+  await adapter.open("A");
+  assert.equal(f.container.page.frm, adapter.frm);
+});
+
+test("page.frm cannot expose a mismatched document, another page or a hidden Form", async (t) => {
+  const { adapter, f, list } = setup(t);
+  await adapter.open("A");
+  assert.equal(list.parent.frm, adapter.frm);
+  const old = list.documentRoute.begin("B");
+  assert.equal(
+    list.parent.frm,
+    undefined,
+    "route changes cannot relabel the old document",
+  );
+  list.documentRoute.rollback(old);
+  assert.equal(list.parent.frm, adapter.frm);
+  adapter.frm.doc = { doctype: "ToDo", name: "other" };
+  assert.equal(list.parent.frm, undefined);
+  adapter.frm.doc.name = "A";
+  f.container.page = {};
+  assert.equal(
+    list.parent.frm,
+    undefined,
+    "the inactive cached page exposes nothing",
+  );
+  f.container.page = list.parent;
+  list.page.wrapper.is = () => false;
+  assert.equal(list.parent.frm, undefined);
+});
+
+test("page.frm is absent during fetch and restores the previous authorized Form on rejection", async (t) => {
+  const { adapter, f, list } = setup(t);
+  await adapter.open("A");
+  let reject;
+  f.model.with_doc = () =>
+    new Promise((_, fail) => {
+      reject = fail;
+    });
+  const pending = adapter.open("denied");
+  await Promise.resolve();
+  assert.equal(list.parent.frm, undefined);
+  reject(new Error("Permission denied"));
+  assert.equal(await pending, false);
+  assert.equal(list.parent.frm, adapter.frm);
+  assert.equal(list.parent.frm.doc.name, "A");
+});
+
+test("closing during fetch prevents a late response from restoring page.frm", async (t) => {
+  const { adapter, f, list } = setup(t);
+  await adapter.open("A");
+  let loaded;
+  f.model.with_doc = () =>
+    new Promise((resolve) => {
+      loaded = resolve;
+    });
+  const pending = adapter.open("B");
+  await Promise.resolve();
+  assert.equal(adapter.close(), true);
+  loaded();
+  assert.equal(await pending, false);
+  assert.equal(Object.hasOwn(list.parent, "frm"), false);
+});
+
+test("dirty blocking preserves page.frm and navigation releases it", async (t) => {
+  const { adapter, list, browser, setDirty } = setup(t);
+  await adapter.open("A");
+  setDirty(true);
+  assert.equal(await adapter.open("B"), false);
+  assert.equal(adapter.close(), false);
+  assert.equal(list.parent.frm, adapter.frm);
+  setDirty(false);
+  browser.location.assign = () => {};
+  assert.equal(adapter.onRoute("/desk/user"), true);
+  assert.equal(Object.hasOwn(list.parent, "frm"), false);
+});
+
+test("page.frm never overwrites or removes another owner's Form", async (t) => {
+  const { adapter, list } = setup(t);
+  const other = { doctype: "User" };
+  Object.defineProperty(list.parent, "frm", {
+    value: other,
+    configurable: true,
+  });
+  await adapter.open("A");
+  assert.equal(list.parent.frm, other);
+  adapter.hide();
+  assert.equal(list.parent.frm, other);
+  delete list.parent.frm;
+  adapter.show();
+  assert.equal(list.parent.frm, adapter.frm);
+  list.parent.frm = other;
+  adapter.close();
+  assert.equal(
+    list.parent.frm,
+    other,
+    "native reassignment must survive cleanup",
+  );
+});
+
+test("unsafe Form quarantine does not publish page.frm", async (t) => {
+  const { adapter, list } = setup(t);
+  await adapter.open("A");
+  adapter.refreshAndWait = async () => {
+    throw Object.assign(new Error("timed out"), { unsafeFormState: true });
+  };
+  adapter.renderFallback = () => {
+    adapter.formUnusable = true;
+    adapter.selectedName = null;
+  };
+  assert.equal(await adapter.open("B"), false);
+  assert.equal(Object.hasOwn(list.parent, "frm"), false);
 });
 
 test("Form Page remains authoritative during first asynchronous client hooks", (t) => {

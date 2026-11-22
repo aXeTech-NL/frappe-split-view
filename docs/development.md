@@ -56,7 +56,8 @@ For the required ERPNext CI environment install `v16.32.0`, ensure setup creates
 
 The ToDo smoke asserts selector registration, stable pane attributes, a real
 `frappe.ui.form.Form`, same object identity across records, retained list container and Form-owned
-route/page context, current-document-only title, Default View availability, save persistence through
+route/page context (including the active shell's `page.frm` and cleanup on hide/Close),
+current-document-only title, Default View availability, save persistence through
 REST, dirty switch/close blocking, page hide/show `cur_frm`, and hard full-page boundary. It also
 covers reload restoration of document/filters/order, marked deep links without tab state,
 Back/Forward reload boundaries and Close/reopen. Both ToDo and Project assert full-width list
@@ -72,7 +73,10 @@ Form or Grid as runtime proof.
 
 Dependency-free route/adapter tests cover compound filters, paging/scroll snapshots, disabled
 storage, dirty history/unload guards, route rollback, serialized activation and pending/queued
-Close cancellation. These do not replace the pinned browser CI.
+Close cancellation. Form-context tests also cover mismatched routes/documents, denied loads,
+unsafe render quarantine, hidden/cached pages and handoff to another native owner. Python tests
+verify that both browser fixture entry points refuse before any site-data access unless
+`allow_tests` is enabled. These do not replace the pinned browser CI.
 
 ## Manual work still required
 
